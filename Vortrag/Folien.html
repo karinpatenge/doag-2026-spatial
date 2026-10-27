@@ -1,0 +1,2228 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hänsel und Gretel im Geodatenwald</title>
+<style>
+  :root {
+    --bg:           #ffffff;
+    --bg-soft:      #f3f4f6;
+    --bg-card:      #eef0fb;
+    --fg:           #111827;
+    --fg-muted:     #6b7280;
+    --accent:       #0619F3;
+    --accent-deep:  #0410b8;
+    --accent-2:     #dc2626;
+    --border:       #e5e7eb;
+    --code-bg:      #f8fafc;
+    --code-fg:      #1e293b;
+    --forest:       #cfe8c4;
+    --forest-line:  #4d7c3a;
+    --water:        #bfdbfe;
+    --water-line:   #2563eb;
+    --meadow:       #fef3c7;
+    --meadow-line:  #ca8a04;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    font: 22px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--fg); background: var(--bg);
+    overflow: hidden;
+  }
+
+  .slides { position: relative; height: 100vh; width: 100vw; }
+  .slide {
+    position: absolute; inset: 0;
+    padding: 5vh 6vw 8vh;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    overflow: auto;
+  }
+  .slide.active { display: flex; }
+
+  h1 { font-size: 3.0em; margin: 0 0 0.4em; color: var(--fg); line-height: 1.1; letter-spacing: -0.01em; }
+  h2 { font-size: 1.7em; margin: 0 0 0.5em; color: var(--accent); line-height: 1.15; }
+  h3 { font-size: 1.1em; margin: 0 0 0.9em; color: var(--fg-muted); font-weight: 600; }
+  p  { margin: 0 0 0.7em; }
+  a  { color: var(--accent); }
+
+  ul, ol { margin: 0 0 0.7em; padding-left: 1.4em; }
+  li { margin: 0.3em 0; }
+
+  .lead { font-size: 1.3em; color: var(--fg-muted); max-width: 30em; }
+  .big  { font-size: 1.3em; line-height: 1.4; }
+  .small { font-size: 0.8em; }
+  .muted { color: var(--fg-muted); }
+
+  .center { text-align: center; align-items: center; }
+  .center h1, .center h2, .center p { text-align: center; }
+
+  .meta { color: var(--fg-muted); font-size: 0.9em; }
+
+  code, pre {
+    font-family: ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace;
+  }
+  pre {
+    background: var(--code-bg); color: var(--code-fg);
+    padding: 0.7em 1em; border-radius: 8px;
+    font-size: 0.75em; line-height: 1.45;
+    overflow-x: auto;
+    margin: 0 0 0.7em;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  code.inline {
+    background: var(--bg-soft); padding: 0.1em 0.4em;
+    border-radius: 4px; font-size: 0.9em;
+    border: 1px solid var(--border);
+    color: var(--accent-deep);
+  }
+  pre .kw      { color: #1d4ed8; font-weight: 600; }
+  pre .str     { color: #047857; }
+  pre .num     { color: #b45309; }
+  pre .comment { color: #64748b; font-style: italic; }
+
+  table { border-collapse: collapse; margin: 0.4em 0; font-size: 0.8em; }
+  th, td { padding: 0.4em 0.8em; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+  th { background: var(--bg-soft); font-weight: 600; color: var(--fg); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.wrap { word-break: break-all; font-family: ui-monospace, Consolas, monospace; font-size: 0.85em; }
+  /* Spaltenköpfe der Live-Tabellen sind Spaltennamen aus dem SQL und stehen deshalb in Codeschrift */
+  .live.table th { font-family: ui-monospace, Consolas, monospace; font-weight: 600; }
+
+  .person { display: flex; gap: 1em; align-items: flex-start; }
+  .portrait {
+    width: 120px; height: 120px; flex: none; border-radius: 50%; object-fit: cover;
+  }
+  .portrait.todo { display: flex; align-items: center; justify-content: center; text-align: center;
+                   font-size: 0.6em; padding: 0.5em; border-radius: 50%; }
+
+  /* Zaubersprüche: jedes SQL auf den Folien, als Seite aus einem Zauberbuch bei Nacht mit goldenem Lesezeichen */
+  pre.sql {
+    position: relative; overflow: visible;
+    width: fit-content; max-width: 100%; box-sizing: border-box;
+    margin-top: 1.1em; padding-top: 1em;
+    background: #2e1065; color: #ede9fe;
+    border: 2px solid #d4a017; border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(46, 16, 101, 0.25);
+  }
+  pre.sql::before {
+    content: '✦  Zauberspruch  ✦'; white-space: pre;
+    position: absolute; top: -0.95em; left: 1em;
+    padding: 0.15em 0.8em; border-radius: 999px;
+    background: #d4a017; color: #2e1065;
+    font: 700 0.9em system-ui, sans-serif; letter-spacing: 0.04em;
+  }
+  pre.sql .kw      { color: #fcd34d; }
+  pre.sql .str     { color: #86efac; }
+  pre.sql .num     { color: #fdba74; }
+  pre.sql .comment { color: #c4b5fd; }
+  /* helle Fassung für Beamer, Druck und den verschickten Stand (Taste Z) */
+  body.tag pre.sql { background: #f5f3ff; color: #2e1065; box-shadow: 0 1px 4px rgba(46, 16, 101, 0.12); }
+  body.tag pre.sql .kw      { color: #1e3a8a; }
+  body.tag pre.sql .str     { color: #065f46; }
+  body.tag pre.sql .num     { color: #7c2d12; }
+  body.tag pre.sql .comment { color: #334155; }
+
+  /* Szenenleiste am Anfang jedes Kapitels, rechts die wachsende Karte */
+  .szene {
+    display: flex; gap: 1.2em; align-items: stretch;
+    background: #fbf7ee; border-left: 5px solid #b45309; border-radius: 10px; padding: 0.5em 0.9em;
+  }
+  /* als Kopfzeile oben auf der Folie; der übrige Inhalt beginnt darunter */
+  .slide > .szene { position: absolute; top: 2.5vh; left: 6vw; right: 6vw; }
+  .slide:has(> .szene) { padding-top: calc(2.5vh + 190px + 2vh); }
+  .szene .text { flex: 1; min-width: 0; font-size: 0.95em; }
+  .szene .kapitel { font-weight: 700; color: #b45309; display: block; margin-bottom: 0.2em; }
+  .szene p { margin: 0 0 0.25em; }
+  .szene .dialog { color: var(--fg-muted); display: grid; grid-template-columns: 1fr 1fr; gap: 1.5em; }
+  .szene .dialog p { margin: 0; }
+  .szene .dialog b { color: var(--fg); }
+  .szene .live.map.mini, .szene .mini-leer { width: 230px; height: 120px; flex: none; min-height: 0; }
+  .mini-leer {
+    border: 1px dashed #d6c7a8; border-radius: 10px; background: #fff;
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    font-size: 0.6em; color: var(--fg-muted); padding: 0.5em;
+  }
+
+  /* Überschrift der Folie oben in der Mitte, größer als die Überschriften der Blöcke */
+  .slide > h2.kopf { position: absolute; top: 4vh; left: 6vw; right: 6vw; text-align: center; margin: 0; font-size: 2.1em; }
+  .slide:has(> h2.kopf) { padding-top: calc(4vh + 90px); }
+  /* unter der Szenenleiste steht sie direkt darunter, der übrige Inhalt folgt oben statt mittig */
+  .slide:has(> .szene) > h2.kopf { position: static; margin: 0 0 0.5em; }
+  .slide:has(> .szene):has(> h2.kopf) { padding-top: calc(2.5vh + 190px + 2vh); justify-content: flex-start; }
+  /* der Inhalt unter dieser Überschrift steht mittig im restlichen Platz */
+  .slide:has(> .szene) > h2.kopf + * { margin-top: auto; }
+  .slide:has(> .szene):has(> h2.kopf) > :last-child { margin-bottom: auto; }
+  /* Blöcke unter der Überschrift gleichmäßig über die restliche Höhe der Folie verteilt */
+  .bloecke { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; }
+  .slide:has(> .versprechen), .slide:has(> .fusszeile) { padding-bottom: calc(11vh + 60px + 3vh); }
+
+  /* Zerlegung von SDO_GTYPE in seine Stellen */
+  .dltt { display: flex; gap: 0.6em; margin: 0.4em 0 0.8em; }
+  .dltt > div {
+    flex: 1; text-align: center; background: var(--bg-card); border-radius: 10px; padding: 0.3em 0.4em 0.5em;
+  }
+  .dltt > div.tt { flex: 1.3; }
+  .dltt b { display: block; font: 700 2.2em ui-monospace, Consolas, monospace; color: var(--accent); }
+  .dltt span { display: block; font-size: 0.7em; line-height: 1.3; }
+
+  /* Fußzeile über der Navigation: das Versprechen auf der GIS-Folie oder ein Kasten mit der Klasse fusszeile */
+  .versprechen, .fusszeile { position: absolute; left: 6vw; right: 6vw; bottom: 11vh; margin: 0; }
+  .versprechen {
+    padding: 0.5em 0 0; border-top: 3px solid var(--accent);
+    font-size: 1.3em; font-weight: 600; color: var(--accent-deep);
+  }
+
+  /* Die Hexe schlägt zu: typische Fehler */
+  .hexe {
+    border: 2px solid #dc2626; background: #fef2f2; border-radius: 10px;
+    padding: 0.45em 0.9em; font-size: 0.8em;
+  }
+  .hexe::before { content: 'Die Hexe schlägt zu!'; display: block; font-weight: 800; color: #dc2626; }
+
+  /* Legende unter einer Karte: je Eintrag ein Farbzeichen und ein Text */
+  .legende { display: flex; flex-wrap: wrap; gap: 0.4em 1.4em; margin: 0.5em 0 0; font-size: 0.75em; color: var(--fg-muted); }
+  .legende i { display: inline-block; width: 0.8em; height: 0.8em; border-radius: 50%; margin-right: 0.4em;
+               vertical-align: -0.05em; }
+
+  .glossary dt { font-weight: 700; margin-top: 0.6em; }
+  .glossary dd { margin: 0.1em 0 0 0; font-size: 0.85em; }
+
+  .grid-2 { --spalt: 2em; display: grid; grid-template-columns: 1fr 1fr; gap: var(--spalt); align-items: start; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5em; }
+  .grid-2 > div, .grid-3 > div { min-width: 0; }
+  /* Überschrift einer Spalte: gleicher Abstand nach unten wie die Folienüberschrift */
+  .grid-2 > div > h2 { margin-bottom: 1em; }
+  /* Linien zwischen Blöcken: senkrecht mitten im Spaltenabstand, waagrecht über jedem weiteren Block untereinander.
+     Karten sind schon eigene Kästen und bekommen keine Linie. */
+  .grid-2 > :not(.card) + :not(.card) {
+    align-self: stretch; border-left: 1px solid var(--border);
+    margin-left: calc(var(--spalt) / -2); padding-left: calc(var(--spalt) / 2);
+  }
+  .bloecke > * + *, .trennlinie { border-top: 1px solid var(--border); padding-top: 0.8em; }
+  .trennlinie { margin-top: 1.2em; }
+
+  .card {
+    background: var(--bg-card); border-radius: 12px;
+    padding: 1em 1.2em;
+  }
+  .card strong { display: block; font-size: 1.1em; margin-bottom: 0.3em; }
+  .card .question { color: var(--accent-deep); font-style: italic; }
+
+  .note {
+    border-left: 4px solid var(--accent);
+    padding: 0.3em 0 0.3em 1em;
+    color: var(--fg);
+    font-size: 0.9em;
+  }
+  .quote {
+    font-size: 1.5em; font-style: italic;
+    border-left: 4px solid var(--accent);
+    padding: 0.3em 0 0.3em 1em;
+    max-width: 28em;
+  }
+
+  /* Platzhalter für Inhalte, die noch fehlen */
+  .todo {
+    border: 2px dashed #f97316; color: #c2410c;
+    border-radius: 8px; padding: 0.3em 0.6em;
+    background: #fff7ed;
+  }
+
+  /* Live-Felder: Inhalt kommt per ORDS aus der Datenbank */
+  .live {
+    position: relative;
+    border: 1px solid var(--border); border-radius: 10px;
+    background: #fff;
+    min-height: 4em;
+  }
+  .live.map { height: 52vh; }
+  .live.map.small { height: 30vh; }
+  .live.map.tall { height: 64vh; }
+  .live.table { padding: 0.2em 0.6em; overflow: auto; max-height: 40vh; }
+  .live svg { width: 100%; height: 100%; display: block; }
+  .live .offline {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: var(--fg-muted); font-size: 0.8em; text-align: center;
+    background: repeating-linear-gradient(45deg, #fafafa, #fafafa 10px, #f3f4f6 10px, #f3f4f6 20px);
+    border-radius: 10px;
+  }
+  .live.loading::after {
+    content: 'lädt …'; position: absolute; right: 0.6em; top: 0.4em;
+    font-size: 0.7em; color: var(--fg-muted);
+  }
+  .live .reload {
+    position: absolute; right: 0.4em; bottom: 0.3em;
+    border: none; background: none; color: var(--fg-muted);
+    cursor: pointer; font-size: 0.8em; opacity: 0.5;
+  }
+  .live .reload:hover { opacity: 1; }
+  .live-label {
+    font-size: 0.6em; color: var(--fg-muted);
+    margin: 0.3em 0 0.8em;
+    font-family: ui-monospace, Consolas, monospace;
+  }
+
+  /* Kartenfarben: Klasse k-<name> aus der Spalte "name", s-<zustand> aus der Spalte "zustand".
+     Die allgemeinen Klassen (land, demo) stehen vorn, damit die Namen sie überschreiben. */
+  .live svg path, .live svg circle { vector-effect: non-scaling-stroke; }
+  .k-land         { fill: #e5e7eb; stroke: #9ca3af; stroke-width: 0.6px; fill-rule: evenodd; }
+  .k-demo         { fill: rgba(6, 25, 243, 0.15); stroke: var(--accent); stroke-width: 2.5px; fill-rule: evenodd; }
+  .k-wald         { fill: var(--forest); stroke: var(--forest-line); stroke-width: 2px; fill-rule: evenodd; }
+  .k-see          { fill: var(--water); stroke: var(--water-line); stroke-width: 2px; }
+  .k-lichtung     { fill: var(--meadow); stroke: var(--meadow-line); stroke-width: 1.5px; stroke-dasharray: 6 4; }
+  .k-kreis        { fill: rgba(220, 38, 38, 0.25); stroke: #dc2626; stroke-width: 1px; }
+  .k-heimweg      { fill: none; stroke: var(--accent); stroke-width: 3px; }
+  .k-irrweg       { fill: none; stroke: #7c3aed; stroke-width: 2.5px; }
+  .k-fluchtweg    { fill: none; stroke: #0e7490; stroke-width: 3px; }
+  .k-ente         { fill: none; stroke: #dc2626; stroke-width: 6px; }
+  .k-elternhaus   { fill: var(--accent); stroke: #fff; stroke-width: 2px; }
+  .k-hexenhaus    { fill: #7c2d12; stroke: #fff; stroke-width: 2px; }
+  .k-feuerstelle  { fill: #f97316; stroke: #fff; stroke-width: 2px; }
+  .k-kieselstein  { fill: #e5e7eb; stroke: #374151; stroke-width: 1.5px; }
+  .k-baum         { fill: #166534; stroke: none; }
+  .k-zentroid     { fill: #dc2626; stroke: #fff; stroke-width: 2px; }
+  .k-innenpunkt   { fill: #16a34a; stroke: #fff; stroke-width: 2px; }
+  .k-haensel      { fill: #0ea5e9; stroke: #fff; stroke-width: 2px; }
+  .k-gretel       { fill: #db2777; stroke: #fff; stroke-width: 2px; }
+  .k-rechteck     { fill: none; stroke: #dc2626; stroke-width: 2px; stroke-dasharray: 8 5; }
+  .s-naechster    { fill: #dc2626; }
+  .s-im_umkreis   { fill: #f59e0b; }
+  .s-knoechlein   { fill: #dc2626; }
+  .range          { fill: rgba(245, 158, 11, 0.12); stroke: #f59e0b; stroke-width: 1.5px; stroke-dasharray: 5 4; }
+  /* roter Umkreis, wenn eine gelbe Lichtung daneben liegt (Option range.farbe) */
+  .range-rot      { fill: rgba(220, 38, 38, 0.12); stroke: #dc2626; stroke-width: 2px; stroke-dasharray: none; }
+  .range-rand     { fill: none; }
+  .ring-arrows    { fill: none; stroke: none; }
+  .label          { fill: var(--fg); paint-order: stroke; stroke: #fff; stroke-width: 0.2em; font-weight: 600; }
+  .hidden-until-drawn { opacity: 0; transition: opacity 0.6s; }
+  .hidden-until-drawn.shown { opacity: 1; }
+
+  .button-row { display: flex; gap: 0.5em; flex-wrap: wrap; margin: 0 0 0.6em; }
+  .button-row button {
+    border: 1px solid var(--accent); background: #fff; color: var(--accent);
+    border-radius: 999px; padding: 0.25em 0.9em; font: inherit; font-size: 0.75em; cursor: pointer;
+  }
+  .button-row button.active, .button-row button:hover { background: var(--accent); color: #fff; }
+
+  .schlagwoerter { margin: 0 0 0.6em; font-size: 0.85em; color: var(--accent-deep); min-height: 1.5em; }
+
+  .timing { font-size: 1.6em; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+
+  /* Platzhalter für die QR-Codes */
+  .qr-grid { display: flex; gap: 2.5em; justify-content: center; margin-top: 1.2em; }
+  .qr-grid figure { margin: 0; text-align: center; }
+  .qr-grid .qr {
+    width: 180px; height: 180px; margin: 0 auto 0.5em;
+    border: 2px dashed #f97316; border-radius: 12px; background: #fff7ed;
+    display: flex; align-items: center; justify-content: center;
+    color: #c2410c; font-size: 0.7em; padding: 0.5em;
+  }
+  .qr-grid figcaption { font-size: 0.8em; color: var(--fg-muted); }
+
+  /* Fußzeile auf den inneren Folien */
+  .footer-text {
+    position: fixed; left: 6vw; bottom: 2.2vh;
+    color: var(--fg-muted); font-size: 0.6em; opacity: 0.7;
+    pointer-events: none; z-index: 50;
+  }
+  body.first-slide .footer-text, body.last-slide .footer-text { display: none; }
+
+  /* Navigation */
+  nav.controls {
+    position: fixed; right: 24px; bottom: 40px;
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    padding: 8px 12px; border-radius: 999px;
+    box-shadow: 0 4px 16px rgba(6, 25, 243, 0.12);
+    border: 1px solid var(--border);
+    user-select: none;
+    z-index: 100;
+  }
+  nav.controls button {
+    width: 36px; height: 36px;
+    border: 1px solid var(--border);
+    background: var(--bg); color: var(--fg);
+    border-radius: 50%; cursor: pointer;
+    font-size: 18px; line-height: 1;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  nav.controls button:hover:not(:disabled) {
+    background: var(--accent); color: white; border-color: var(--accent);
+  }
+  nav.controls button:disabled { opacity: 0.3; cursor: default; }
+  nav.controls .counter {
+    font-variant-numeric: tabular-nums;
+    color: var(--fg-muted); font-size: 0.7em;
+    min-width: 4em; text-align: center;
+  }
+  nav.controls .clock { display: none; }
+  body.show-clock nav.controls .clock { display: inline; }
+  /* Tastenhinweise unter der Seitenanzeige */
+  .keys {
+    position: fixed; right: 24px; bottom: 12px; z-index: 100;
+    color: var(--fg-muted); font-size: 0.5em; user-select: none; pointer-events: none;
+  }
+  .keys kbd {
+    font: inherit; font-weight: 700; color: var(--fg);
+    border: 1px solid var(--border); border-radius: 4px; padding: 0 0.35em; background: #fff;
+  }
+
+  /* Fortschrittsbalken */
+  .progress {
+    position: fixed; top: 0; left: 0;
+    height: 3px; background: var(--accent);
+    width: 0; transition: width 0.3s ease;
+    z-index: 100;
+  }
+
+  /* Bildschirm schwarz */
+  body.blackout .slides { visibility: hidden; }
+  body.blackout { background: #000; }
+  body.blackout nav.controls, body.blackout .progress, body.blackout .footer-text, body.blackout .keys { display: none; }
+
+  @media print {
+    .slide { display: flex !important; page-break-after: always; height: 100vh; }
+    nav.controls, .progress { display: none; }
+  }
+
+  /* Druckansicht (Folien.html?druck): alle Folien untereinander, je eine Seite im Format 1920 x 1080 */
+  @page { size: 1920px 1080px; margin: 0; }
+  body.druck, body.druck .slides { height: auto; overflow: visible; }
+  body.druck .slide {
+    display: flex; position: relative; width: 1920px; height: 1080px;
+    break-after: page; page-break-after: always;
+  }
+  body.druck nav.controls, body.druck .progress, body.druck .footer-text, body.druck .live .reload,
+  body.druck .keys { display: none; }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<div class="slides">
+
+  <!-- ============================================================ -->
+  <!-- 1 - Titel                                             Prolog -->
+  <!-- ============================================================ -->
+  <section class="slide center" data-duration="0:30">
+    <h1>Hänsel und Gretel<br>im Geodatenwald</h1>
+    <p class="lead">Oracle Spatial Grundlagen</p>
+    <p class="meta" style="margin-top: 2em;">
+      Gretel Patenge &middot; Senior Principal Product Manager Spatial and Graph &middot; Oracle<br>
+      Hänsel Göttling &middot; Chief Platform Architect &middot; Enignum AI GmbH<br>
+      DOAG 2026 &middot; Nürnberg &middot; 19. November 2026
+    </p>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 2 - Es war einmal                                     Prolog -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="1:30">
+    <div class="szene">
+      <div class="text">
+        <span class="kapitel">Prolog &middot; Es war einmal &hellip;</span>
+        <p>Vor einem großen Walde wohnte ein armer Holzhacker mit seiner Frau und seinen zwei Kindern.</p>
+        <div class="dialog">
+          <p><b>Hänsel:</b> „Gretel, ich glaube, wir haben uns verlaufen.“</p>
+          <p><b>Gretel:</b> „Keine Sorge, Hänsel. Wir haben eine Datenbank dabei.“</p>
+        </div>
+      </div>
+      <div class="mini-leer">Die Karte des Geodatenwalds ist noch leer.</div>
+    </div>
+    <h2 class="kopf">Die zwei Kinder</h2>
+    <div class="grid-2">
+      <div class="card person">
+        <img class="portrait" src="assets/karin.jpg" alt="Gretel Patenge">
+        <div>
+          <strong>Gretel Patenge</strong>
+          <p class="muted">Senior Principal Product Manager Spatial and Graph<br>
+             Oracle Global Services Germany, Berlin</p>
+          <p class="small">Die Kluge: erklärt, wie Oracle Spatial funktioniert.</p>
+          <p class="todo">Bezug zu Geodaten</p>
+        </div>
+      </div>
+      <div class="card person">
+        <img class="portrait" src="assets/knut.jpg" alt="Hänsel Göttling">
+        <div>
+          <strong>Hänsel Göttling</strong>
+          <p class="muted">Chief Platform Architect<br>Enignum AI GmbH, Hamburg</p>
+          <p class="small">Der Praktiker: stellt die Fragen aus der Praxis und zeigt die Demos.</p>
+          <p class="todo">Bezug zu Geodaten</p>
+        </div>
+      </div>
+    </div>
+    <p class="note" style="margin-top: 1em;">Jede Station des Märchens beantwortet eine räumliche Frage &ndash;
+       mit einem Zauberspruch in SQL, live in Oracle AI Database 26ai.</p>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 3 - Die Hungersnot                                 Kapitel 1 -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="2:00">
+    <div class="szene">
+      <div class="text">
+        <span class="kapitel">Kapitel 1 &middot; Die Hungersnot</span>
+        <p>Im Land herrscht große Teuerung, und das Geld reicht kaum noch für das Nötigste.</p>
+        <div class="dialog">
+          <p><b>Hänsel:</b> „Für ein eigenes GIS war kein Geld mehr da.“</p>
+          <p><b>Gretel:</b> „Musste es auch nicht. Spatial steckt schon in der Datenbank.“</p>
+        </div>
+      </div>
+      <div class="live map mini" data-endpoint="karte" data-view="map" data-options='{"only": ["Elternhaus"], "bbox": [657200, 5481150, 661800, 5484450]}'></div>
+    </div>
+    <h2 class="kopf">Brauchen wir ein teures GIS?</h2>
+    <div class="bloecke">
+      <div>
+        <h3>Spatial steckt schon in der Datenbank</h3>
+        <ul class="small">
+          <li>Geodaten sind Geschäftsdaten: Kunden, Filialen, Leitungen, Grundstücke, Fahrzeuge.</li>
+          <li>Oracle Spatial ist seit Dezember 2019 ohne Zusatzlizenz in allen Editionen enthalten,
+              auch in Autonomous Database und Oracle AI Database 26ai Free.</li>
+          <li>Ein Datenmodell, ein SQL, eine Sicherheits- und Backup-Strategie &ndash; keine Kopie in ein eigenes
+              GIS.</li>
+          <li>Offene Standards: OGC Simple Features, ISO SQL/MM, WKT und GeoJSON.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Karten in jeder App</h3>
+        <div class="grid-3" style="gap: 0.8em;">
+          <div class="card">
+            <strong>Wie weit ist es?</strong>
+            <ul>
+              <li>Paketverfolgung</li>
+              <li>Lieblingsbar</li>
+              <li>Lauf-App</li>
+            </ul>
+          </div>
+          <div class="card">
+            <strong>Was ist in der Nähe?</strong>
+            <ul>
+              <li>Restaurant</li>
+              <li>Mietroller</li>
+              <li>Geldautomat</li>
+            </ul>
+          </div>
+          <div class="card">
+            <strong>Was liegt im Gebiet?</strong>
+            <ul>
+              <li>Ladesäulen</li>
+              <li>Wohnungssuche</li>
+              <li>Regenradar</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="versprechen">
+      Unser Versprechen: Nach diesem Vortrag stellst du alle drei Fragen selbst in SQL.
+    </p>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 4 - Der Datentyp SDO_GEOMETRY                      Kapitel 2 -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="2:00">
+    <div class="szene">
+      <div class="text">
+        <span class="kapitel">Kapitel 2 &middot; Kieselsteine im Mondlicht</span>
+        <p>Hänsel schleicht nachts hinaus, füllt seine Taschen mit weißen Kieselsteinen und lässt sie auf dem Weg
+           in den Wald einen nach dem anderen fallen.</p>
+        <div class="dialog">
+          <p><b>Hänsel:</b> „Jeder Stein markiert einen Ort. Wie bringe ich so einen Ort in eine Tabelle?“</p>
+          <p><b>Gretel:</b> „Mit einem einzigen Datentyp.“</p>
+        </div>
+      </div>
+      <div class="live map mini" data-endpoint="karte" data-view="map" data-options='{"only": ["Elternhaus", "Kieselstein", "Feuerstelle"], "bbox": [657200, 5481150, 661800, 5484450]}'></div>
+    </div>
+    <h2 class="kopf">SDO_GEOMETRY: Ein Typ sie alle zu knechten</h2>
+    <div class="bloecke">
+<pre class="sql" style="font-size: 0.85em;">-- Der Datentyp SDO_GEOMETRY: Eine Spalte dieses Typs nimmt jede Art von Geometrie auf
+create type sdo_geometry as object (
+  sdo_gtype      number,               -- Geometrietyp, z. B. 2001 = Punkt (siehe unten)
+  sdo_srid       number,               -- Koordinatensystem, z. B. 25832 (→ Folie 7)
+  sdo_point      sdo_point_type,       -- x, y, z: nur für einen einzelnen Punkt
+  sdo_elem_info  sdo_elem_info_array,  -- Aufbau von Linien und Flächen (→ Folie 14)
+  sdo_ordinates  sdo_ordinate_array);  -- alle Koordinaten von Linien und Flächen (→ Folie 14)</pre>
+    <div class="grid-2" style="grid-template-columns: 1fr 1.8fr;">
+      <div>
+        <h3>Der Geometrietyp <code class="inline">SDO_GTYPE</code>: vier Stellen</h3>
+        <div class="dltt">
+          <div><b>2</b><span><strong>D</strong> &middot; Tausender<br>Anzahl der Dimensionen</span></div>
+          <div><b>0</b><span><strong>L</strong> &middot; Hunderter<br>Dimension des Messwerts, 0 = keiner</span></div>
+          <div class="tt"><b>01</b><span><strong>TT</strong> &middot; Zehner und Einer<br>Art der Geometrie</span></div>
+        </div>
+        <ul class="small">
+          <li><strong>D = 2</strong>: x, y &middot; <strong>D = 3</strong>: x, y, z oder x, y, Messwert &middot;
+              <strong>D = 4</strong>: x, y, z, Messwert</li>
+          <li><strong>L</strong> zählt nur beim linearen Referenzieren, etwa der Kilometrierung einer Autobahn: Jeder
+              Punkt trägt dann einen Messwert, L sagt, in welcher Dimension er steht.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Arten der Geometrie: die Stellen TT</h3>
+        <table class="small" style="white-space: nowrap;">
+          <tr><th>TT</th><th>Art</th><th>englisch</th><th>2D</th>
+              <th>TT</th><th>Art</th><th>englisch</th><th>2D</th></tr>
+          <tr><td>00</td><td>unbekannt</td><td>UNKNOWN_GEOMETRY</td><td class="num">2000</td>
+              <td>05</td><td>mehrere Punkte</td><td>MULTIPOINT</td><td class="num">2005</td></tr>
+          <tr><td>01</td><td>Punkt</td><td>POINT</td><td class="num">2001</td>
+              <td>06</td><td>mehrere Linien</td><td>MULTILINE, MULTICURVE</td><td class="num">2006</td></tr>
+          <tr><td>02</td><td>Linie</td><td>LINE, CURVE</td><td class="num">2002</td>
+              <td>07</td><td>mehrere Polygone</td><td>MULTIPOLYGON, MULTISURFACE</td><td class="num">2007</td></tr>
+          <tr><td>03</td><td>Polygon</td><td>POLYGON, SURFACE</td><td class="num">2003</td>
+              <td>08</td><td>Körper</td><td>SOLID</td><td class="num">3008</td></tr>
+          <tr><td>04</td><td>Sammlung</td><td>COLLECTION</td><td class="num">2004</td>
+              <td>09</td><td>mehrere Körper</td><td>MULTISOLID</td><td class="num">3009</td></tr>
+        </table>
+      </div>
+    </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 5 - Elternhaus als Punkt                           Kapitel 2 -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="1:30">
+    <h2 class="kopf">Das Elternhaus als Punkt</h2>
+    <div class="grid-2" style="grid-template-columns: 1.1fr 1fr;">
+      <div>
+        <h3>Anlegen</h3>
+<pre class="sql">insert into ort (name, geo)
+  values ('Elternhaus',
+          sdo_geometry(2001,                                      -- sdo_gtype
+                       25832,                                     -- sdo_srid
+                       sdo_point_type(659400, 5481300, null),     -- sdo_point
+                       null,                                      -- sdo_elem_info
+                       null));                                    -- sdo_ordinates</pre>
+        <ul class="small">
+          <li>Erst x (Rechtswert, Länge), dann y (Hochwert, Breite)</li>
+          <li><code class="inline">sdo_elem_info</code> und <code class="inline">sdo_ordinates</code>
+              bleiben beim Punkt leer &rarr; Folie 14</li>
+        </ul>
+        <h3 class="trennlinie">Abfragen</h3>
+<pre class="sql">select o.geo.sdo_gtype as gtype,
+       o.geo.sdo_srid as srid,
+       o.geo.sdo_point.x as x,
+       o.geo.sdo_point.y as y
+  from ort o
+  where o.name = 'Elternhaus';</pre>
+        <div class="live table" data-endpoint="elternhaus" data-view="table"
+             data-options='{"plain": ["gtype", "srid", "x", "y"]}'></div>
+      </div>
+      <div>
+        <div class="live map" data-endpoint="uebersicht" data-view="map"
+             data-options='{"labels": true, "only": ["Elternhaus"], "bbox": [657200, 5481150, 661800, 5484450]}'></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 6 - Drei Wege zum Punkt                            Kapitel 2 -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="1:30">
+    <div class="grid-2" style="grid-template-columns: 1.6fr 1fr;">
+      <div>
+        <h2>Drei Wege zum Punkt</h2>
+<pre class="sql">-- Konstruktor
+select sdo_geometry(2001, 25832, sdo_point_type(659400, 5481300, null), null, null);
+-- WKT
+select sdo_geometry('POINT (659400 5481300)', 25832);
+-- GeoJSON
+select sdo_util.from_geojson('{"type": "Point", "coordinates": [11.1999, 49.4634]}', null, 4326);
+
+select o.geo.get_wkt() as wkt,
+       sdo_util.to_geojson(sdo_cs.transform(o.geo, 4326)) as geojson
+  from ort o
+  where o.name = 'Elternhaus';</pre>
+        <div class="live table" data-endpoint="elternhaus-formate" data-view="table"></div>
+      </div>
+      <div>
+        <h2>Übliche Formate</h2>
+        <p><strong>WKT</strong> (Well-Known Text) &ndash; lesbarer Text, Standard des Open Geospatial Consortium</p>
+        <p><strong>GeoJSON</strong> &ndash; das Format der Webkarten</p>
+        <ul class="small">
+          <li>2008 von einer Gruppe von Open-Source-Entwicklern erfunden</li>
+          <li>seit 2016 Standard der IETF: RFC 7946</li>
+          <li>immer WGS 84 (SRID 4326) &rarr; deshalb <code class="inline">sdo_cs.transform</code></li>
+        </ul>
+        <p class="small muted"><strong>WKB</strong> (Well-Known Binary): dasselbe wie WKT als kompakte Bytefolge,
+           für den Austausch zwischen Programmen.</p>
+      </div>
+    </div>
+    <h2 class="trennlinie">Umwandlungsmethoden</h2>
+    <table class="small" style="width: 100%;">
+      <tr><th>Von</th><th>Nach</th><th>Funktion</th></tr>
+      <tr><td><code>SDO_GEOMETRY</code></td><td>WKT</td>
+          <td><code>geo.get_wkt()</code>, <code>sdo_util.to_wktgeometry</code></td></tr>
+      <tr><td>WKT</td><td><code>SDO_GEOMETRY</code></td>
+          <td><code>sdo_geometry('…', srid)</code>, <code>sdo_util.from_wktgeometry</code></td></tr>
+      <tr><td><code>SDO_GEOMETRY</code></td><td>GeoJSON</td><td><code>sdo_util.to_geojson</code></td></tr>
+      <tr><td>GeoJSON</td><td><code>SDO_GEOMETRY</code></td><td><code>sdo_util.from_geojson</code></td></tr>
+      <tr><td><code>SDO_GEOMETRY</code></td><td>WKB</td>
+          <td><code>geo.get_wkb()</code>, <code>sdo_util.to_wkbgeometry</code></td></tr>
+    </table>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 7 - Koordinatensysteme                             Kapitel 3 -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="1:00">
+    <div class="szene">
+      <div class="text">
+        <span class="kapitel">Kapitel 3 &middot; Wo liegt das Elternhaus eigentlich?</span>
+        <div class="dialog">
+          <p><b>Hänsel:</b> „Mein Handy sagt 49,46 und 11,20. Sind wir jetzt in Nürnberg?“</p>
+          <p><b>Gretel:</b> „Das hängt davon ab, welche Zahlen das sind &ndash; und in welcher Reihenfolge.“</p>
+        </div>
+      </div>
+      <div class="live map mini" data-endpoint="karte" data-view="map" data-options='{"only": ["Elternhaus", "Kieselstein", "Feuerstelle"], "bbox": [657200, 5481150, 661800, 5484450]}'></div>
+    </div>
+    <h2 class="kopf">Koordinatensysteme</h2>
+    <div class="grid-2">
+      <div>
+        <svg viewBox="0 0 840 330" style="width: 100%; max-height: 30vh;"
+             aria-label="Dasselbe Elternhaus geografisch auf der Kugel und projiziert in der Ebene">
+          <style>
+            .cs-line  { fill: none; stroke: #94a3b8; stroke-width: 1.5; }
+            .cs-edge  { fill: #eef0fb; stroke: #0619F3; stroke-width: 2.5; }
+            .cs-point { fill: #dc2626; stroke: #fff; stroke-width: 2; }
+            .cs-title { font: 700 22px system-ui, sans-serif; fill: #111827; text-anchor: middle; }
+            .cs-value { font: 600 18px ui-monospace, Consolas, monospace; fill: #dc2626; text-anchor: middle; }
+            .cs-axis  { font: 16px system-ui, sans-serif; fill: #6b7280; }
+            .cs-arrow { fill: none; stroke: #0619F3; stroke-width: 3; }
+          </style>
+          <!-- Kugel mit Längen- und Breitengraden -->
+          <circle class="cs-edge" cx="190" cy="140" r="120"/>
+          <ellipse class="cs-line" cx="190" cy="140" rx="90" ry="120"/>
+          <ellipse class="cs-line" cx="190" cy="140" rx="134" ry="120"/>
+          <line class="cs-line" x1="190" y1="20" x2="190" y2="260"/>
+          <line class="cs-line" x1="70" y1="140" x2="310" y2="140"/>
+          <line class="cs-line" x1="86" y1="80" x2="294" y2="80"/>
+          <line class="cs-line" x1="86" y1="200" x2="294" y2="200"/>
+          <line class="cs-line" x1="130" y1="36" x2="250" y2="36"/>
+          <line class="cs-line" x1="130" y1="244" x2="250" y2="244"/>
+          <circle class="cs-point" cx="216" cy="49" r="8"/>
+          <text class="cs-title" x="190" y="292">Geografisch: Grad auf der Kugel</text>
+          <text class="cs-value" x="190" y="320">11,20° O · 49,46° N</text>
+          <!-- Projektion -->
+          <path class="cs-arrow" d="M330,140 L500,140"/>
+          <path d="M500,130 L518,140 L500,150 z" fill="#0619F3"/>
+          <text class="cs-axis" x="424" y="128" style="text-anchor: middle;">Projektion</text>
+          <!-- Ebene mit x/y-Gitter in Metern -->
+          <rect class="cs-edge" x="540" y="30" width="260" height="220"/>
+          <line class="cs-line" x1="605" y1="30" x2="605" y2="250"/>
+          <line class="cs-line" x1="670" y1="30" x2="670" y2="250"/>
+          <line class="cs-line" x1="735" y1="30" x2="735" y2="250"/>
+          <line class="cs-line" x1="540" y1="85" x2="800" y2="85"/>
+          <line class="cs-line" x1="540" y1="140" x2="800" y2="140"/>
+          <line class="cs-line" x1="540" y1="195" x2="800" y2="195"/>
+          <circle class="cs-point" cx="690" cy="75" r="8"/>
+          <text class="cs-axis" x="800" y="270" style="text-anchor: end;">x (Rechtswert) in m &#8594;</text>
+          <text class="cs-axis" x="528" y="250" transform="rotate(-90 528 250)">y (Hochwert) in m &#8594;</text>
+          <text class="cs-title" x="670" y="292">Projiziert: Meter in der Ebene</text>
+          <text class="cs-value" x="670" y="320">659400 · 5481300</text>
+        </svg>
+        <p class="small" style="margin-top: 0.6em;">
+          Die <strong>SRID</strong> (Spatial Reference ID) ist die Nummer eines Koordinatensystems, meist aus dem
+          EPSG-Register. <strong>EPSG</strong> war die European Petroleum Survey Group, ab 1986 eine Arbeitsgruppe
+          von Geodäten aus der Ölindustrie. Seit 2005 pflegt der Verband der Öl- und Gasförderer (IOGP) das
+          Register unter epsg.org.
+        </p>
+      </div>
+      <div>
+        <h3>Wie viele Koordinatensysteme kennt die Datenbank?</h3>
+<pre class="sql">select coord_ref_sys_kind as art, count(*) as anzahl
+  from mdsys.sdo_coord_ref_sys
+  group by coord_ref_sys_kind
+  order by anzahl desc;</pre>
+        <div class="live table" data-endpoint="koordinatensysteme" data-view="table"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 8 - Ein Haus, drei Zahlenpaare                     Kapitel 3 -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="1:30">
+    <h2 class="kopf">Ein Haus, drei Zahlenpaare</h2>
+    <div class="grid-2">
+      <div>
+        <h3>Das Elternhaus in drei Koordinatensystemen</h3>
+<pre class="sql">select s.srid,
+       sdo_cs.transform(o.geo, s.srid).get_wkt() as wkt
+  from ort o
+  cross join (select column_value as srid
+                from table(sys.odcinumberlist(25832, 4326, 3857))) s
+  where o.name = 'Elternhaus';</pre>
+        <div class="live table" data-endpoint="elternhaus-srid" data-view="table"
+             data-options='{"plain": ["srid"]}'></div>
+      </div>
+      <div>
+        <h3>Die drei Bezugssysteme</h3>
+        <dl class="glossary" style="margin: 0;">
+          <dt>SRID 25832: ETRS89 / UTM Zone 32N &ndash; Meter</dt>
+          <dd><strong>ETRS89</strong> (European Terrestrial Reference System 1989) ist an die eurasische
+              Kontinentalplatte gebunden: Punkte in Europa behalten ihre Koordinaten. Zu WGS 84 sind es
+              inzwischen knapp 1 m Unterschied.</dd>
+          <dd><strong>UTM</strong> (Universal Transverse Mercator) teilt die Erde in 60 Zonen zu je 6° Länge und
+              bildet jede Zone für sich auf die Ebene ab. Deutschland liegt in den Zonen 32 und 33.</dd>
+          <dt>SRID 4326: WGS 84 &ndash; Grad</dt>
+          <dd><strong>WGS 84</strong> (World Geodetic System 1984) ist das weltweite Bezugssystem des
+              US-Verteidigungsministeriums, die Grundlage von GPS und GeoJSON.</dd>
+          <dt>SRID 3857: Web-Mercator &ndash; „Meter“</dt>
+          <dd>Die Mercator-Projektion auf einer Kugel, 2005 mit Google Maps eingeführt und heute die Projektion
+              fast aller Webkarten. Gut zum Anzeigen, schlecht zum Messen.</dd>
+          <dd class="note" style="margin-top: 0.8em;">Ein Breitengrad ist überall etwa 111 km lang, ein Längengrad
+              bei Nürnberg nur 72,4 km.</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="hexe" style="margin-top: 1.2em;">
+      Länge und Breite vertauscht: Aus 11,20° O &middot; 49,46° N wird 49,46° O &middot; 11,20° N &ndash;
+      das Elternhaus steht bei Bosaso in Somalia.
+      <div class="live table" data-endpoint="hexe-somalia" data-view="table"
+           data-options='{"plain": ["x_laenge", "y_breite"]}' style="margin-top: 0.4em;"></div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 9 - Weltkarten                                     Kapitel 3 -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="1:30">
+    <h2 class="kopf">Dieselbe Welt, vier Projektionen</h2>
+    <div class="button-row" id="world-switch">
+      <button data-srid="32662" class="active"
+              data-info="Grad einfach als x und y &middot; längentreu entlang der Meridiane &middot; zu den Polen hin stark in die Breite gezogen">32662 Plate Carrée</button>
+      <button data-srid="3857"
+              data-info="nahezu winkeltreu &middot; Standard fast aller Webkarten seit Google Maps 2005 &middot; Flächen zu den Polen hin stark vergrößert, nur bis 85° Breite">3857 Web-Mercator</button>
+      <button data-srid="212992"
+              data-info="flächentreu &middot; für Weltkarten mit Verteilungen, etwa Bevölkerung oder Klima &middot; Formen am Rand verzerrt">212992 Mollweide</button>
+      <button data-srid="1009801"
+              data-info="Kompromiss: weder flächen- noch winkeltreu, aber beides wenig verzerrt &middot; seit 1998 Weltkarte von National Geographic">1009801 Winkel-Tripel</button>
+    </div>
+    <p class="schlagwoerter" id="world-info"></p>
+    <div class="live map tall" id="world-map" data-endpoint="weltkarte?srid=32662" data-view="map"
+         data-options='{"defaultKind": "land"}'></div>
+    <p class="live-label">Länder und Kreise mit 500 km Radius (<code>sdo_buffer</code>), live umgerechnet mit
+       <code>sdo_cs.transform(geo, :srid)</code></p>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 10 - Kreisflaechen                                 Kapitel 3 -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="1:00">
+    <h2 class="kopf">Wie groß ist ein Kreis mit 500 km Radius?</h2>
+<pre class="sql">with projektion as (select c.srid,
+                           c.cs_name as name
+                      from mdsys.cs_srs c
+                     where c.srid in (3857, 212992, 1009801)),
+     kreis as (select column_value as breite,
+                      sdo_geom.sdo_buffer(sdo_geometry(2001, 4326, sdo_point_type(11, column_value, null), null, null),
+                                          500000, pa_geo.toleranz(), 'unit=M arc_tolerance=1000') as geo
+                 from table(sys.odcinumberlist(0, 49, 70)))
+select p.srid,
+       p.name,
+       k.breite,
+       round(sdo_geom.sdo_area(k.geo, pa_geo.toleranz(), 'unit=SQ_KM')) as echte_qkm,
+       round(sdo_geom.sdo_area(sdo_cs.transform(k.geo, p.srid), pa_geo.toleranz()) / 1e6) as karten_qkm,
+       round(100 * (sdo_geom.sdo_area(sdo_cs.transform(k.geo, p.srid), pa_geo.toleranz()) / 1e6
+                    / sdo_geom.sdo_area(k.geo, pa_geo.toleranz(), 'unit=SQ_KM') - 1), 1) as abweichung_prozent
+  from projektion p
+  cross join kreis k
+  order by p.srid, k.breite;</pre>
+    <div class="live table" data-endpoint="kreisflaechen" data-view="table"
+         data-options='{"plain": ["srid", "breite"]}'></div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 11 - Toleranz                                      Kapitel 4 -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="1:00">
+    <div class="szene">
+      <div class="text">
+        <span class="kapitel">Kapitel 4 &middot; Die Feuerstelle</span>
+        <p>Tief im Wald machen die Eltern ein Feuer und lassen die Kinder dort zurück.</p>
+        <div class="dialog">
+          <p><b>Hänsel:</b> „Wie weit sind wir von zu Hause weg?“</p>
+          <p><b>Gretel:</b> „Erst müssen wir klären, wann zwei Punkte derselbe Punkt sind.“</p>
+        </div>
+      </div>
+      <div class="live map mini" data-endpoint="karte" data-view="map" data-options='{"only": ["Elternhaus", "Kieselstein", "Feuerstelle"], "bbox": [657200, 5481150, 661800, 5484450]}'></div>
+    </div>
+    <h2 class="kopf">Die Toleranz</h2>
+    <div class="grid-2" style="grid-template-columns: 1fr 3.1fr;">
+      <div>
+        <p class="big">Liegen zwei Punkte weniger als 5 cm auseinander, sind sie derselbe Punkt.</p>
+        <p>Fast jede Funktion von Oracle Spatial verlangt diesen Wert. Wir legen ihn an genau einer Stelle ab.</p>
+        <p class="small muted">Reines SQL kann keine Package-Konstanten lesen (ORA-06553) &ndash; deshalb die Funktion.</p>
+      </div>
+      <div>
+<pre class="sql">create or replace package pa_geo is
+  -- Toleranz in Metern für alle Spatial-Funktionen
+  cToleranz constant number := 0.05;
+
+  function toleranz return number deterministic;
+end;
+/
+create or replace package body pa_geo is
+
+  ----------------------------------------------------------------------------------------------------------------------
+  function toleranz return number deterministic is
+  begin
+    return cToleranz;
+  end;
+
+end;
+/</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 12 - Abstand in vier Varianten                     Kapitel 4 -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="1:30">
+    <h2 class="kopf">Wie tief im Wald liegt die Feuerstelle?</h2>
+<pre class="sql">select sdo_geom.sdo_distance(sdo_geometry(2001, null, sdo_cs.transform(h.geo, 4326).sdo_point, null, null),
+                             sdo_geometry(2001, null, sdo_cs.transform(f.geo, 4326).sdo_point, null, null),
+                             pa_geo.toleranz()) as ohne_srid_grad,
+       sdo_geom.sdo_distance(sdo_cs.transform(h.geo, 4326), sdo_cs.transform(f.geo, 4326),
+                             pa_geo.toleranz(), 'unit=M') as wgs84_m,
+       sdo_geom.sdo_distance(sdo_cs.transform(h.geo, 3857), sdo_cs.transform(f.geo, 3857),
+                             pa_geo.toleranz()) as web_mercator_m,
+       sdo_geom.sdo_distance(h.geo, f.geo, pa_geo.toleranz()) as utm_32n_m
+  from ort h
+  cross join ort f
+  where h.name = 'Elternhaus'
+    and f.name = 'Feuerstelle';</pre>
+    <div class="grid-2" style="margin-top: 1.2em;">
+      <div>
+        <h3>Ergebnis</h3>
+        <div class="live table" data-endpoint="abstand" data-view="table"></div>
+      </div>
+      <div>
+        <h3>Signatur von <code class="inline">sdo_geom.sdo_distance</code></h3>
+<pre>function sdo_distance(geom1       in sdo_geometry,
+                      geom2       in sdo_geometry,
+                      tol         in number   default null,
+                      unit        in varchar2 default null,
+                      ellipsoidal in varchar2 default null)
+  return number;</pre>
+        <ul class="small">
+          <li><code class="inline">unit</code>: Einheit des Ergebnisses, etwa <code class="inline">'unit=M'</code>
+              oder <code class="inline">'unit=KM'</code></li>
+          <li><code class="inline">ellipsoidal</code>: <code class="inline">'TRUE'</code> rechnet auf dem Ellipsoid statt
+              auf der Kugel</li>
+        </ul>
+      </div>
+    </div>
+    <div class="hexe" style="margin-top: 2.5em;">
+      Kein SRID: Der Abstand ist 0. Die Toleranz gilt in den Einheiten der Koordinaten, hier also 0,05&nbsp;Grad.
+      Das sind bei Nürnberg 3,6 bis 5,6&nbsp;km &ndash; Elternhaus und Feuerstelle gelten als derselbe Punkt.
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 13 - Naechster Stein, Steine im Umkreis            Kapitel 4 -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="1:30">
+    <div class="szene">
+      <div class="text">
+        <span class="kapitel">Kapitel 4 &middot; Die Feuerstelle</span>
+        <p>Hänsel und Gretel sitzen allein an der Feuerstelle tief im Wald. Als der Mond aufgeht, suchen sie Hänsels
+           weiße Kieselsteine: Welcher Stein liegt am nächsten, und welche liegen im Umkreis von 20 m? Der nächste
+           Stein ist der Anfang des Heimwegs.</p>
+      </div>
+      <div class="live map mini" data-endpoint="karte" data-view="map" data-options='{"only": ["Elternhaus", "Kieselstein", "Feuerstelle"], "bbox": [657200, 5481150, 661800, 5484450]}'></div>
+    </div>
+    <h2 class="kopf">Wo beginnt der Heimweg im Mondschein?</h2>
+    <div class="grid-2">
+      <div>
+<pre class="sql">select s.nummer,
+       sdo_geom.sdo_distance(s.geo, f.geo, pa_geo.toleranz()) as meter
+  from ort s
+  cross join ort f
+  where s.name = 'Kieselstein'
+    and f.name = 'Feuerstelle'
+  order by meter
+  fetch first 1 row only;
+
+select s.nummer
+  from ort s
+  cross join ort f
+  where s.name = 'Kieselstein'
+    and f.name = 'Feuerstelle'
+    and sdo_geom.sdo_distance(s.geo, f.geo, pa_geo.toleranz()) &lt;= 20;</pre>
+        <p class="small muted">Paketverfolgung und nächstes Restaurant: dieselben Fragen.</p>
+      </div>
+      <div>
+        <div class="live map" data-endpoint="kieselsteine" data-view="map"
+             data-options='{"range": {"name": "Feuerstelle", "meters": 20}, "zoomTo": ["Feuerstelle"], "zoomMeters": 24, "labels": true}'></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 14 - Aufbau einer Linie                            Kapitel 5 -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="1:30">
+    <div class="szene">
+      <div class="text">
+        <span class="kapitel">Kapitel 5 &middot; Heimweg und Irrweg</span>
+        <p>Im Mondschein folgen Hänsel und Gretel den weißen Kieselsteinen, Stein für Stein, bis nach Hause.</p>
+        <div class="dialog">
+          <p><b>Hänsel:</b> „Eigentlich wollte ich keine einzelnen Punkte, sondern einen Weg.“</p>
+          <p><b>Gretel:</b> „Dann speichere ihn als Linie.“</p>
+        </div>
+      </div>
+      <div class="live map mini" data-endpoint="karte" data-view="map" data-options='{"only": ["Elternhaus", "Kieselstein", "Feuerstelle", "Heimweg"], "bbox": [657200, 5481150, 661800, 5484450]}'></div>
+    </div>
+    <h2 class="kopf">Wie eine Linie gespeichert wird</h2>
+    <div class="grid-2" style="grid-template-columns: 1.35fr 1fr;">
+      <div>
+        <h3>Eine Linie aus drei Punkten</h3>
+<pre class="sql">sdo_geometry(2002,                                   -- sdo_gtype: 2002 = Linie aus x, y
+             null,                                   -- sdo_srid
+             null,                                   -- sdo_point
+             sdo_elem_info_array(1, 2, 1),           -- sdo_elem_info
+             sdo_ordinate_array(1, 1, 4, 3, 7, 2))   -- sdo_ordinates</pre>
+        <table>
+          <tr><th colspan="2"><code>sdo_elem_info</code>: je Teil ein Dreierpaket</th></tr>
+          <tr><td class="num">1</td><td>Der Teil beginnt an Stelle 1 der Koordinatenliste.</td></tr>
+          <tr><td class="num">2</td><td>Art: Linie</td></tr>
+          <tr><td class="num">1</td><td>Interpretation: gerade Abschnitte</td></tr>
+        </table>
+        <p class="small"><code class="inline">sdo_ordinates</code>: alle Koordinaten hintereinander,
+           x, y, x, y, &hellip;</p>
+      </div>
+      <div>
+        <div class="live map small" data-view="map"
+             data-static='[{"name": "Linie", "wkt": "LINESTRING (1 1, 4 3, 7 2)"},
+                           {"name": "1, 1", "wkt": "POINT (1 1)"},
+                           {"name": "4, 3", "wkt": "POINT (4 3)"},
+                           {"name": "7, 2", "wkt": "POINT (7 2)"}]'
+             data-options='{"labels": true, "defaultKind": "demo"}'></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 15 - Heimweg aus Kieselsteinen                     Kapitel 5 -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="1:00">
+    <h2 class="kopf">Aus Kieselsteinen wird der Heimweg</h2>
+    <div class="grid-2" style="grid-template-columns: 1.75fr 1fr;">
+      <div>
+        <h3>Summation der einzelnen Abschnitte</h3>
+<pre class="sql">with heimweg as (
+  select sdo_geometry('LINESTRING (' || listagg(s.geo.sdo_point.x || ' ' || s.geo.sdo_point.y, ', ')
+                                          within group (order by s.nummer) || ')', 25832) as geo
+    from ort s
+    where s.name = 'Kieselstein')
+select round(sdo_geom.sdo_length(w.geo, pa_geo.toleranz())) as weg_meter
+  from heimweg w;</pre>
+        <div class="live table" data-endpoint="heimweg-laenge" data-view="table"></div>
+        <h3 class="trennlinie">Luftlinie vom ersten zum letzten Stein</h3>
+<pre class="sql">select round(sdo_geom.sdo_distance(a.geo, b.geo, pa_geo.toleranz())) as luftlinie_meter
+  from ort a
+  cross join ort b
+  where a.name = 'Kieselstein'
+    and a.nummer = 1
+    and b.name = 'Kieselstein'
+    and b.nummer = 25;</pre>
+        <div class="live table" data-endpoint="heimweg-luftlinie" data-view="table"></div>
+      </div>
+      <div>
+        <h3>Der Heimweg</h3>
+        <div class="live map" data-endpoint="heimweg-karte" data-view="map"
+             data-options='{"only": ["Heimweg", "Kieselstein", "Feuerstelle", "Elternhaus"],
+                            "labels": ["Elternhaus", "Feuerstelle", "Kieselstein 1", "Kieselstein 25"]}'></div>
+      </div>
+    </div>
+    <div class="hexe" style="margin-top: 1.2em;">
+      Komma statt Punkt: Wer WKT aus Zahlen mit Nachkommastellen zusammensetzt, bekommt in einer deutschen
+      Sitzung „11,17“ statt „11.17“. Unsere Koordinaten sind ganze Meter &ndash; sonst
+      <code class="inline">to_char(x, 'TM', 'nls_numeric_characters=.,')</code>.
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 16 - Irrweg                                        Kapitel 5 -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="1:30">
+    <div class="szene">
+      <div class="text">
+        <span class="kapitel">Kapitel 5 &middot; Heimweg und Irrweg</span>
+        <p>Bald herrscht wieder Not, und die Eltern führen die Kinder noch tiefer in den Wald. Diesmal streut Hänsel
+           Brotkrumen. Die Vögel fressen sie auf, und die Kinder irren drei Tage umher, bis sie zu einem Häuschen
+           kommen.</p>
+        <div class="dialog">
+          <p><b>Hänsel:</b> „Wo sind meine Brotkrumen geblieben?“</p>
+          <p><b>Gretel:</b> „Die Kieselsteine waren committed, die Brotkrumen nicht.“</p>
+        </div>
+      </div>
+      <div class="live map mini" data-endpoint="karte" data-view="map" data-options='{"only": ["Elternhaus", "Kieselstein", "Feuerstelle", "Heimweg", "Irrweg", "Hexenhaus"], "bbox": [657200, 5481150, 661800, 5484450]}'></div>
+    </div>
+    <h2 class="kopf">Drei Tage im Wald</h2>
+    <div class="grid-2" style="grid-template-columns: 1.16fr 1fr;">
+      <div>
+<pre class="sql">select sdo_geom.validate_geometry_with_context(w.geo, pa_geo.toleranz()) as gueltig,
+       round(sdo_geom.sdo_length(w.geo, pa_geo.toleranz())) as meter
+  from weg w
+  where w.name = 'Irrweg';</pre>
+        <div class="live table" data-endpoint="irrweg-pruefung" data-view="table"></div>
+        <p class="note" style="margin-top: 1em;">Eine Linie darf sich selbst kreuzen.</p>
+      </div>
+      <div>
+        <div class="live map" data-endpoint="irrweg-karte" data-view="map"
+             data-options='{"only": ["Irrweg", "Feuerstelle", "Hexenhaus"], "animate": "Irrweg", "seconds": 6,
+                            "reveal": ["Hexenhaus"], "labels": true}'></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 17 - Purer Wald                                    Kapitel 6 -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="1:00">
+    <div class="szene">
+      <div class="text">
+        <span class="kapitel">Kapitel 6 &middot; Das Lebkuchenhaus auf der Lichtung</span>
+        <p>Ein schneeweißes Vöglein führt die Kinder zu einem Häuschen aus Brot, mit Kuchen gedeckt.
+           „Knusper, knusper, Knäuschen, wer knuspert an meinem Häuschen?“</p>
+        <div class="dialog">
+          <p><b>Hänsel:</b> „Steht das Häuschen noch im Wald oder auf der Lichtung?“</p>
+          <p><b>Gretel:</b> „Dazu müssen wir erst wissen, wie ein Wald mit Lichtung aussieht.“</p>
+        </div>
+      </div>
+      <div class="live map mini" data-endpoint="karte" data-view="map" data-options='{"only": ["Wald", "See", "Lichtung", "Elternhaus", "Kieselstein", "Feuerstelle", "Irrweg", "Hexenhaus"], "bbox": [657200, 5481150, 661800, 5484450]}'></div>
+    </div>
+    <h2 class="kopf" style="margin-top: 0.6em;">Der Wald</h2>
+    <div class="grid-2" style="grid-template-columns: 1.6fr 1fr;">
+      <div>
+<pre class="sql">sdo_geometry(2003,                                             -- 2003 = Polygon aus x, y
+             25832,                                            -- ETRS89 / UTM Zone 32N
+             null,                                             -- nur für einzelne Punkte
+             sdo_elem_info_array(1, 1003, 1),                  -- äußerer Ring, gerade Kanten
+             sdo_ordinate_array(x1, y1, x2, y2, ..., x1, y1))  -- die Eckpunkte des Rings</pre>
+        <ul>
+          <li><strong>1003</strong>: äußerer Ring. Sein Rand umschließt die Fläche; innere Ringe (2003) schneiden
+              Löcher hinein, dazu mehr beim See.</li>
+          <li><strong>Interpretation 1</strong>: Die Eckpunkte sind durch gerade Kanten verbunden. 2 stünde für
+              Kreisbögen, 3 für ein Rechteck aus zwei Ecken.</li>
+          <li>Der Ring ist <strong>geschlossen</strong>: Der letzte Punkt wiederholt den ersten.</li>
+          <li>Er läuft <strong>gegen den Uhrzeigersinn</strong>, so erkennt Oracle den äußeren Ring. Die Pfeile auf
+              der Karte zeigen die Richtung.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="live map small" data-endpoint="wald-karte" data-view="map"
+             data-options='{"only": ["Wald"], "rings": 1, "arrows": ["Wald"]}'></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 18 - See und Lichtung als Loecher                  Kapitel 6 -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="2:30">
+    <h2 class="kopf">Flächen mit Löchern</h2>
+    <div class="grid-2" style="grid-template-columns: 1.85fr 1fr;">
+      <div>
+        <h3>Der Wald mit See und Lichtung</h3>
+<pre class="sql">sdo_geometry(2003,                                 -- 2003 = Polygon aus x, y
+             25832,                                -- ETRS89 / UTM Zone 32N
+             null,                                 -- nur für einzelne Punkte
+             sdo_elem_info_array(1, 1003, 1,       -- ab Stelle 1: äußerer Ring, der Waldrand
+                                 35, 2003, 1,      -- ab Stelle 35: innerer Ring, Loch für den See
+                                 53, 2003, 1),     -- ab Stelle 53: innerer Ring, Loch für die Lichtung
+             sdo_ordinate_array(x, y, ..., x, y,   -- Stelle 1 bis 34: der Waldrand
+                                x, y, ..., x, y,   -- Stelle 35 bis 52: das Loch für den See
+                                x, y, ..., x, y))  -- Stelle 53 bis 68: das Loch für die Lichtung</pre>
+        <ul>
+          <li><strong>Der Wald</strong> ist eine Fläche mit zwei Löchern: Die inneren Ringe (<strong>2003</strong>)
+              schneiden See und Lichtung heraus. Sie laufen <strong>im Uhrzeigersinn</strong>, der Waldrand gegen den
+              Uhrzeigersinn.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="live map" data-endpoint="wald-karte" data-view="map"
+             data-options='{"only": ["Wald", "See", "Lichtung", "Hexenhaus"], "rings": 3, "arrows": ["Wald"], "labels": true}'></div>
+      </div>
+    </div>
+    <div class="grid-2 trennlinie">
+      <div>
+        <h3>Der See als eigene Fläche</h3>
+<pre class="sql">sdo_geometry(2003,
+             25832,
+             null,
+             sdo_elem_info_array(1, 1003, 1),      -- einziger Ring: das Ufer
+             sdo_ordinate_array(x, y, ..., x, y))  -- wie das Loch, umgekehrt</pre>
+      </div>
+      <div>
+        <h3>Die Lichtung als eigene Fläche</h3>
+<pre class="sql">sdo_geometry(2003,
+             25832,
+             null,
+             sdo_elem_info_array(1, 1003, 1),      -- einziger Ring: der Rand
+             sdo_ordinate_array(x, y, ..., x, y))  -- wie das Loch, umgekehrt</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 19 - Pruefen                                       Kapitel 6 -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="1:30">
+    <h2 class="kopf">Ist die Fläche gültig?</h2>
+    <div class="grid-2" style="grid-template-columns: 1.5fr 1fr;">
+      <div>
+<pre class="sql">select 'Wald' as beispiel,
+       sdo_geom.validate_geometry_with_context(f.geo, pa_geo.toleranz()) as ergebnis
+  from flaeche f
+  where f.name = 'Wald'
+union all
+select 'Acht',
+       sdo_geom.validate_geometry_with_context(
+         sdo_geometry(2003, null, null, sdo_elem_info_array(1, 1003, 1),
+                      sdo_ordinate_array(0, 0, 4, 4, 4, 0, 0, 4, 0, 0)), pa_geo.toleranz())
+union all
+select 'Falsch gedreht',
+       sdo_geom.validate_geometry_with_context(
+         sdo_geometry(2003, null, null, sdo_elem_info_array(1, 1003, 1),
+                      sdo_ordinate_array(6, 0, 6, 4, 10, 4, 10, 0, 6, 0)), pa_geo.toleranz());</pre>
+        <div class="live table" data-endpoint="pruefung" data-view="table"></div>
+      </div>
+      <div>
+        <div class="live map small" data-view="map"
+             data-static='[{"name": "Acht", "wkt": "LINESTRING (0 0, 4 4, 4 0, 0 4, 0 0)"},
+                           {"name": "Falsch gedreht", "wkt": "LINESTRING (6 0, 6 4, 10 4, 10 0, 6 0)"},
+                           {"name": "Start und Ende", "wkt": "POINT (0 0)"},
+                           {"name": "Start und Ende", "wkt": "POINT (6 0)"}]'
+             data-options='{"lineArrows": true, "labels": true, "defaultKind": "demo"}'></div>
+      </div>
+    </div>
+    <div class="hexe" style="margin-top: 4em;">
+      Ungültige Flächen: Die <strong>Acht</strong> bekommt <strong>ORA-13349</strong>, weil ihr Rand sich selbst
+      kreuzt. Das <strong>falsch gedrehte</strong> Quadrat bekommt <strong>ORA-13367</strong>, weil sein äußerer
+      Ring im Uhrzeigersinn statt gegen den Uhrzeigersinn läuft.<br>
+      <strong>Jede Form sollte beim Speichern validiert werden! Traue keinem Fremdsystem, nicht mal deinem
+      eigenen!</strong>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 20 - Rectify                                       Kapitel 6 -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="1:00">
+    <h2 class="kopf">Reparieren mit <code class="inline">rectify_geometry</code></h2>
+    <div class="grid-2" style="grid-template-columns: 1.5fr 1fr;">
+      <div>
+<pre class="sql">select b.name,
+       b.geo.sdo_gtype as gtype_vorher,
+       sdo_util.rectify_geometry(b.geo, pa_geo.toleranz()).sdo_gtype as gtype_nachher,
+       sdo_util.rectify_geometry(b.geo, pa_geo.toleranz()).get_wkt() as wkt
+  from (select 'Acht' as name,
+               sdo_geometry(2003, null, null, sdo_elem_info_array(1, 1003, 1),
+                            sdo_ordinate_array(0, 0, 4, 4, 4, 0, 0, 4, 0, 0)) as geo
+        union all
+        select 'Falsch gedreht',
+               sdo_geometry(2003, null, null, sdo_elem_info_array(1, 1003, 1),
+                            sdo_ordinate_array(6, 0, 6, 4, 10, 4, 10, 0, 6, 0))) b;</pre>
+        <div class="live table" data-endpoint="reparatur" data-view="table"
+             data-options='{"plain": ["gtype_vorher", "gtype_nachher"]}'></div>
+      </div>
+      <div>
+        <div class="live map small" data-endpoint="reparatur" data-view="map"
+             data-options='{"defaultKind": "demo", "arrows": true}'></div>
+      </div>
+    </div>
+    <ul class="note" style="margin-top: 4em; list-style: none; padding-left: 1em;">
+      <li><code class="inline">sdo_util.rectify_geometry</code> repariert, was sich eindeutig reparieren lässt:
+          doppelte Punkte, falsche Laufrichtung und Ränder, die sich selbst kreuzen.</li>
+      <li>Die <strong>Acht</strong> wird an ihrem Kreuzungspunkt in zwei Dreiecke geteilt: Aus dem Polygon (2003)
+          wird ein Multipolygon (2007).</li>
+      <li>Beim <strong>falsch gedrehten</strong> Quadrat kehrt die Funktion die Reihenfolge der Punkte um; der Typ
+          bleibt 2003.</li>
+      <li>Danach sind beide Flächen gültig: <code class="inline">validate_geometry_with_context</code> liefert
+          <code class="inline">TRUE</code>.</li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 21 - Lagebeziehungen                               Kapitel 7 -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="3:00">
+    <div class="szene">
+      <div class="text">
+        <span class="kapitel">Kapitel 7 &middot; Liegt das Hexenhaus im Wald?</span>
+        <p><strong>Quiz:</strong> Liegt das Hexenhaus im Wald? Hand hoch für Ja!</p>
+        <div class="dialog">
+          <p></p>
+          <p><b>Gretel:</b> „Die Lichtung ist ein Loch &ndash; und ein Loch gehört nicht zum Wald.“</p>
+        </div>
+      </div>
+      <div class="live map mini" data-endpoint="karte" data-view="map" data-options='{"only": ["Wald", "See", "Lichtung", "Elternhaus", "Kieselstein", "Feuerstelle", "Irrweg", "Hexenhaus"], "bbox": [657200, 5481150, 661800, 5484450]}'></div>
+    </div>
+    <h2 class="kopf">Wie liegen die Dinge zueinander?</h2>
+    <div class="grid-2" style="grid-template-columns: 1.22fr 1fr;">
+      <div>
+<pre class="sql">select o.name,
+       sdo_geom.relate(o.geo, 'determine', f.geo, pa_geo.toleranz()) as beziehung,
+       sdo_geom.relate(o.geo, 'anyinteract', f.geo, pa_geo.toleranz()) as anyinteract,
+       f.name as flaeche
+  from ort o
+  cross join flaeche f
+  where o.name in ('Elternhaus', 'Hexenhaus')
+    and f.name in ('Wald', 'Lichtung');</pre>
+        <div class="live table" data-endpoint="lagebeziehungen" data-view="table"></div>
+      </div>
+      <div>
+        <svg viewBox="0 0 480 330" style="width: 100%; max-height: 40vh;" aria-label="Lagebeziehungen">
+          <style>
+            .ra { fill: rgba(6, 25, 243, 0.18); stroke: #0619F3; stroke-width: 2; }
+            .rb { fill: rgba(22, 163, 74, 0.18); stroke: #16a34a; stroke-width: 2; }
+            .rp { fill: #0619F3; }
+            .rt { font: 600 13px system-ui, sans-serif; fill: #111827; text-anchor: middle; }
+          </style>
+          <!-- Zeile 1 -->
+          <g transform="translate(0,0)">
+            <rect class="rb" x="20" y="15" width="50" height="50"/><rect class="ra" x="85" y="25" width="30" height="30"/>
+            <text class="rt" x="60" y="90">DISJOINT</text></g>
+          <g transform="translate(120,0)">
+            <rect class="rb" x="20" y="15" width="50" height="50"/><rect class="ra" x="70" y="25" width="30" height="30"/>
+            <text class="rt" x="60" y="90">TOUCH</text></g>
+          <g transform="translate(240,0)">
+            <rect class="rb" x="15" y="15" width="50" height="50"/><rect class="ra" x="45" y="30" width="50" height="40"/>
+            <text class="rt" x="60" y="90">OVERLAP&#8203;BDYINTERSECT</text></g>
+          <g transform="translate(360,0)">
+            <rect class="rb" x="35" y="15" width="50" height="50"/><rect class="ra" x="35" y="15" width="50" height="50"/>
+            <text class="rt" x="60" y="90">EQUAL</text></g>
+          <!-- Zeile 2 -->
+          <g transform="translate(0,115)">
+            <rect class="rb" x="30" y="10" width="60" height="60"/><rect class="ra" x="47" y="27" width="26" height="26"/>
+            <text class="rt" x="60" y="95">INSIDE</text></g>
+          <g transform="translate(120,115)">
+            <rect class="rb" x="30" y="10" width="60" height="60"/><rect class="ra" x="30" y="27" width="26" height="26"/>
+            <text class="rt" x="60" y="95">COVEREDBY</text></g>
+          <g transform="translate(240,115)">
+            <rect class="rb" x="30" y="10" width="60" height="60"/><circle class="rp" cx="30" cy="40" r="5"/>
+            <text class="rt" x="60" y="95">ON</text></g>
+          <g transform="translate(360,115)">
+            <rect class="rb" x="30" y="10" width="60" height="60"/><circle class="rp" cx="60" cy="40" r="5"/>
+            <text class="rt" x="60" y="95">INSIDE (Punkt)</text></g>
+          <!-- Legende -->
+          <g transform="translate(0,235)">
+            <rect class="ra" x="20" y="10" width="18" height="18"/><text class="rt" x="45" y="24" style="text-anchor: start;">A (z. B. das Haus)</text>
+            <rect class="rb" x="200" y="10" width="18" height="18"/><text class="rt" x="225" y="24" style="text-anchor: start;">B (z. B. der Wald)</text>
+            <text class="rt" x="20" y="60" style="text-anchor: start; font-weight: 400;">ANYINTERACT = alles außer DISJOINT</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 22 - Groesse und Mitte                             Kapitel 7 -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="2:00">
+    <h2 class="kopf">Wie groß ist der Wald, und wo ist seine Mitte?</h2>
+    <div class="grid-2" style="grid-template-columns: 1.22fr 1fr;">
+      <div>
+<pre class="sql">select round(sdo_geom.sdo_area(f.geo, pa_geo.toleranz(), 'unit=HECTARE')) as hektar,
+       sdo_geom.relate(sdo_geom.sdo_centroid(f.geo, pa_geo.toleranz()), 'determine',
+                       f.geo, pa_geo.toleranz()) as zentroid,
+       sdo_geom.relate(sdo_util.interior_point(f.geo, pa_geo.toleranz()), 'determine',
+                       f.geo, pa_geo.toleranz()) as innenpunkt
+  from flaeche f
+  where f.name = 'Wald';</pre>
+        <div class="live table" data-endpoint="wald-mitte" data-view="table"></div>
+        <ul class="small" style="margin-top: 1em;">
+          <li><code class="inline">sdo_area</code> rechnet in der Einheit, die <code class="inline">unit=</code> vorgibt,
+              etwa <code class="inline">SQ_M</code>, <code class="inline">SQ_KM</code>,
+              <code class="inline">HECTARE</code>, <code class="inline">ACRE</code> oder
+              <code class="inline">SQ_MILE</code>. Die Datenbank kennt 25 Flächeneinheiten
+              (<code class="inline">mdsys.sdo_area_units</code>) und 85 Längeneinheiten für Abstände und Längen
+              (<code class="inline">mdsys.sdo_dist_units</code>, etwa <code class="inline">M</code>,
+              <code class="inline">KM</code>, <code class="inline">MILE</code>, <code class="inline">NAUT_MILE</code>).
+              Ohne <code class="inline">unit=</code> gilt die Einheit des Koordinatensystems, bei 25832 also
+              Quadratmeter.</li>
+          <li>Die Fläche zählt die Löcher nicht mit: See und Lichtung sind schon abgezogen.</li>
+          <li><code class="inline">sdo_centroid</code> liefert den Schwerpunkt der Fläche. Er kann außerhalb liegen:
+              Hier liegt er im See, also nicht im Wald.</li>
+          <li><code class="inline">sdo_util.interior_point</code> liefert einen Punkt, der sicher in der Fläche liegt,
+              etwa für Beschriftungen oder Stecknadeln auf der Karte.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="live map" data-endpoint="wald-mitte-karte" data-view="map"
+             data-options='{"labels": true}'></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 23 - Witterung                                     Kapitel 8 -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="1:00">
+    <div class="szene">
+      <div class="text">
+        <span class="kapitel">Kapitel 8 &middot; Witterung und Knöchlein</span>
+        <p>„Die Hexen haben rote Augen und können nicht weit sehen, aber sie haben eine feine Witterung.“</p>
+        <div class="dialog">
+          <p></p>
+          <p><b>Hexe:</b> „Ich rieche Kinder! Wer ist im Umkreis von 300 Metern?“</p>
+        </div>
+      </div>
+      <div class="live map mini" data-endpoint="karte" data-view="map" data-options='{"only": ["Wald", "See", "Lichtung", "Elternhaus", "Kieselstein", "Feuerstelle", "Irrweg", "Hexenhaus", "Hänsel", "Gretel"], "bbox": [657200, 5481150, 661800, 5484450]}'></div>
+    </div>
+    <h2 class="kopf">Die Hexe hat eine feine Witterung</h2>
+    <div class="grid-2">
+      <div>
+<pre class="sql">select o.name,
+       round(sdo_geom.sdo_distance(o.geo, h.geo, pa_geo.toleranz())) as meter
+  from ort o
+  cross join ort h
+  where h.name = 'Hexenhaus'
+    and o.name &lt;&gt; 'Hexenhaus'
+    and sdo_within_distance(o.geo, h.geo, 'distance=300') = 'TRUE'
+  order by meter;</pre>
+        <div class="live table" data-endpoint="witterung" data-view="table"></div>
+      </div>
+      <div>
+        <p><strong>Operatoren</strong> stehen im <code class="inline">where</code> und fragen zuerst den
+           <strong>Spatial Index</strong>:</p>
+        <ul class="small">
+          <li><strong>Funktionen</strong> wie <code class="inline">sdo_geom.sdo_distance</code> rechnen für jede Zeile
+              die genaue Geometrie durch. Bei vielen Zeilen dauert das.</li>
+          <li><strong>Operatoren</strong> arbeiten in zwei Stufen: Erst liefert der Index alle Kandidaten, deren
+              umschließendes Rechteck passt (Primärfilter). Nur für diese rechnet die Datenbank genau nach
+              (Sekundärfilter).</li>
+          <li>Sie liefern den Text <code class="inline">'TRUE'</code> und stehen deshalb mit
+              <code class="inline">= 'TRUE'</code> im <code class="inline">where</code>.</li>
+        </ul>
+        <ul class="small trennlinie">
+          <li><code class="inline">sdo_within_distance</code> &ndash; Wer ist im Umkreis? Der Abstand steht als Text
+              im dritten Parameter, hier <code class="inline">'distance=300'</code> in Metern.</li>
+          <li><code class="inline">sdo_nn</code> &ndash; Wer ist am nächsten? Braucht einen Index.</li>
+          <li><code class="inline">sdo_relate</code>, <code class="inline">sdo_inside</code>,
+              <code class="inline">sdo_anyinteract</code> &ndash; Wo liegt was? Dieselben Lagebeziehungen wie bei
+              <code class="inline">sdo_geom.relate</code>, nur über den Index.</li>
+          <li><code class="inline">sdo_filter</code> &ndash; nur der Primärfilter, der grobe Blick über den Index</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 24 - Index anlegen                                 Kapitel 8 -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="0:30">
+    <h2 class="kopf">Index anlegen</h2>
+    <p class="note" style="margin-bottom: 1.5em;">Der Spatial Index ist ein <strong>R-Baum</strong>. Das R steht
+       für Rechteck (englisch rectangle): Jeder Knoten speichert das kleinste Rechteck, das alle Geometrien unter ihm
+       umschließt. Erfunden hat ihn Antonin Guttman 1984 an der University of California in Berkeley. Aufgebaut ist er
+       wie ein B-Baum, nur mit Rechtecken statt Werten.</p>
+    <h3>Schritt 1: Metadaten eintragen</h3>
+    <div class="grid-2" style="grid-template-columns: 1.1fr 1fr;">
+      <div>
+<pre class="sql">insert into user_sdo_geom_metadata (table_name, column_name, diminfo, srid)
+  values (upper('baum'), upper('geo'),
+          sdo_dim_array(
+            sdo_dim_element('x', 600000, 700000, pa_geo.toleranz()),
+            sdo_dim_element('y', 5400000, 5500000, pa_geo.toleranz())
+          ),
+          25832);</pre>
+      </div>
+      <div>
+        <ul class="small">
+          <li>Die View <code class="inline">user_sdo_geom_metadata</code> beschreibt je Tabelle und Spalte, in welchem
+              Bereich die Koordinaten liegen, mit welcher Toleranz gerechnet wird und in welchem Koordinatensystem.</li>
+          <li>Hier: x von 600&#8239;000 bis 700&#8239;000&nbsp;m, y von 5&#8239;400&#8239;000 bis
+              5&#8239;500&#8239;000&nbsp;m in ETRS89 / UTM Zone 32N &ndash; der Märchenwald liegt mittendrin.</li>
+          <li>Fehlt der Eintrag, bricht Schritt 2 mit <strong>ORA-13203</strong> ab: Die Metadaten in
+              <code class="inline">user_sdo_geom_metadata</code> ließen sich nicht lesen.</li>
+        </ul>
+      </div>
+    </div>
+    <h3 class="trennlinie">Schritt 2: Index anlegen</h3>
+    <div class="grid-2" style="grid-template-columns: 1.1fr 1fr;">
+      <div>
+<pre class="sql">create index ids1_baum on baum(geo) indextype is mdsys.spatial_index_v2;</pre>
+      </div>
+      <div>
+        <ul class="small">
+          <li><code class="inline">mdsys.spatial_index_v2</code> baut den R-Baum aus umschließenden Rechtecken. Er
+              ist der aktuelle Indextyp für Spatial und wird bei jedem <code class="inline">insert</code>,
+              <code class="inline">update</code> und <code class="inline">delete</code> automatisch nachgeführt.</li>
+          <li>Die <strong>Operatoren</strong> wie <code class="inline">sdo_within_distance</code>,
+              <code class="inline">sdo_nn</code> oder <code class="inline">sdo_filter</code> nutzen ihn. Die Funktionen
+              aus <code class="inline">sdo_geom</code> rechnen ohne Index.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 25 - R-Baum und Knoechlein                         Kapitel 8 -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="1:30">
+    <div class="szene">
+      <div class="text">
+        <span class="kapitel">Kapitel 8 &middot; Witterung und Knöchlein</span>
+        <p>Jeden Morgen ruft die Hexe: „Hänsel, streck deinen Finger heraus!“ Hänsel streckt ihr ein Knöchlein hin,
+           und die Alte mit ihren trüben Augen merkt es nicht.</p>
+      </div>
+      <div class="live map mini" data-endpoint="karte" data-view="map" data-options='{"only": ["Wald", "See", "Lichtung", "Elternhaus", "Kieselstein", "Feuerstelle", "Irrweg", "Hexenhaus", "Hänsel", "Gretel"], "bbox": [657200, 5481150, 661800, 5484450]}'></div>
+    </div>
+    <h2 class="kopf">Das Knöchlein: Der Spatial Index ist ein R-Baum</h2>
+    <div class="grid-2">
+      <div>
+        <svg viewBox="0 -24 420 410" style="width: 100%; max-height: 55vh;" aria-label="R-Baum">
+          <style>
+            .rt-root { fill: none; stroke: #0619F3; stroke-width: 2.5; }
+            .rt-node { fill: rgba(6, 25, 243, 0.06); stroke: #0619F3; stroke-width: 1.5; stroke-dasharray: 6 4; }
+            .rt-hit  { fill: rgba(245, 158, 11, 0.18); stroke: #f59e0b; stroke-width: 2; }
+            .rt-tree { fill: #166534; }
+            .rt-treffer { fill: #dc2626; }
+            .rt-knoechlein { fill: #9ca3af; }
+            .rt-q    { fill: rgba(220, 38, 38, 0.12); stroke: #dc2626; stroke-width: 2; }
+            .rt-t    { font: 600 13px system-ui, sans-serif; fill: #0410b8; }
+            .rt-l    { font: 13px system-ui, sans-serif; fill: #111827; }
+            .rt-nr   { fill: #0619F3; }
+            .rt-nt   { font: 700 12px system-ui, sans-serif; fill: #fff; text-anchor: middle; }
+          </style>
+          <!-- Wurzel und Knoten des R-Baums -->
+          <text class="rt-t" x="10" y="-8">alle Bäume: die Wurzel des R-Baums</text>
+          <rect class="rt-root" x="10" y="10" width="400" height="300" rx="4"/>
+          <rect class="rt-node" x="25" y="30" width="150" height="110"/>
+          <rect class="rt-node" x="200" y="25" width="190" height="120"/>
+          <text class="rt-t" x="385" y="140" style="text-anchor: end;">Knoten</text>
+          <rect class="rt-hit"  x="30" y="170" width="170" height="120"/>
+          <rect class="rt-node" x="230" y="175" width="160" height="115"/>
+          <text class="rt-t" x="44" y="164">Primärfilter: nur dieses Rechteck wird gelesen</text>
+          <!-- Bäume: außerhalb des gelesenen Rechtecks, Knöchlein und Treffer darin -->
+          <g class="rt-tree">
+            <circle cx="45" cy="50" r="4"/><circle cx="90" cy="75" r="4"/><circle cx="150" cy="60" r="4"/>
+            <circle cx="60" cy="120" r="4"/><circle cx="130" cy="125" r="4"/>
+            <circle cx="220" cy="45" r="4"/><circle cx="300" cy="70" r="4"/><circle cx="370" cy="40" r="4"/>
+            <circle cx="250" cy="130" r="4"/><circle cx="350" cy="120" r="4"/>
+            <circle cx="250" cy="195" r="4"/><circle cx="320" cy="230" r="4"/><circle cx="375" cy="190" r="4"/>
+            <circle cx="270" cy="275" r="4"/><circle cx="360" cy="270" r="4"/>
+          </g>
+          <circle class="rt-q" cx="125" cy="235" r="35"/>
+          <g class="rt-knoechlein">
+            <circle cx="50" cy="190" r="5"/><circle cx="170" cy="200" r="5"/>
+            <circle cx="80" cy="270" r="5"/><circle cx="185" cy="275" r="5"/>
+          </g>
+          <g class="rt-treffer"><circle cx="110" cy="215" r="5"/><circle cx="140" cy="250" r="5"/></g>
+          <!-- Schrittnummern passend zur Aufzählung neben dem Bild -->
+          <circle class="rt-nr" cx="323" cy="135" r="10"/><text class="rt-nt" x="323" y="139">1</text>
+          <circle class="rt-nr" cx="30" cy="160" r="10"/><text class="rt-nt" x="30" y="164">2</text>
+          <circle class="rt-nr" cx="90" cy="200" r="10"/><text class="rt-nt" x="90" y="204">3</text>
+          <!-- Legende -->
+          <circle class="rt-q" cx="22" cy="336" r="9"/><text class="rt-l" x="38" y="341">Suchbereich</text>
+          <circle class="rt-treffer" cx="150" cy="336" r="5"/><text class="rt-l" x="162" y="341">Treffer</text>
+          <circle class="rt-knoechlein" cx="240" cy="336" r="5"/><text class="rt-l" x="252" y="341">Knöchlein</text>
+          <circle class="rt-tree" cx="22" cy="366" r="4"/><text class="rt-l" x="38" y="371">nicht gelesene Bäume</text>
+          <rect class="rt-node" x="200" y="358" width="16" height="16"/>
+          <text class="rt-l" x="224" y="371">Knoten des Index</text>
+        </svg>
+      </div>
+      <div>
+        <ol>
+          <li><strong>Index</strong>: Er fasst benachbarte Bäume in umschließende Rechtecke zusammen, die
+              <strong>Knoten</strong>, und diese wieder in größere bis zur Wurzel.</li>
+          <li><strong>Primärfilter</strong>: Der Index vergleicht nur Rechtecke: Welcher Knoten berührt den
+              Suchbereich? Nur der orangefarbene. Seine sechs Bäume sind die Kandidaten, die anderen Knoten liest die
+              Datenbank gar nicht. Das ist so grob, wie die Hexe tastet: Unter den Kandidaten sind auch Knöchlein.</li>
+          <li><strong>Sekundärfilter</strong>: Nur für die sechs Kandidaten rechnet Oracle genau nach, ob sie im
+              Suchbereich liegen. Zwei sind echte Treffer (rot), die vier Knöchlein (grau) fliegen raus.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 26 - Knoechlein zaehlen                            Kapitel 8 -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="1:00">
+    <h2 class="kopf">Wie viele Bäume berühren die Lichtung?</h2>
+    <div class="grid-2">
+      <div>
+<pre class="sql">select count(*)                                   -- nur Primärfilter
+  from baum b
+  cross join flaeche l
+  where l.name = 'Lichtung'
+    and sdo_filter(b.geo, l.geo) = 'TRUE';
+
+select count(*)                                   -- Primär- und Sekundärfilter
+  from baum b
+  cross join flaeche l
+  where l.name = 'Lichtung'
+    and sdo_anyinteract(b.geo, l.geo) = 'TRUE';</pre>
+        <div class="live table" data-endpoint="knoechlein" data-view="table"></div>
+        <p class="small">Die Differenz sind die Knöchlein: Bäume im umschließenden Rechteck, die die Lichtung nicht
+           berühren. Die wenigen exakten Treffer stehen genau auf ihrem Rand.</p>
+      </div>
+      <div>
+        <div class="live map" data-endpoint="knoechlein-karte" data-view="map"></div>
+        <p class="legende">
+          <span><i style="background: var(--meadow); border: 1px dashed var(--meadow-line); border-radius: 0;"></i>Lichtung</span>
+          <span><i style="border: 2px dashed #dc2626; border-radius: 0;"></i>umschließendes Rechteck der Lichtung</span>
+          <span><i style="background: #dc2626;"></i>Knöchlein: im Rechteck, berühren die Lichtung nicht</span>
+          <span><i style="background: #166534;"></i>Treffer: auf dem Rand der Lichtung</span>
+        </p>
+      </div>
+    </div>
+    <ul class="note" style="margin-top: 2.5em; list-style: none; padding-left: 1em;">
+      <li><code class="inline">sdo_filter</code> macht nur den <strong>Primärfilter</strong>: Er vergleicht über den
+          Spatial Index die umschließenden Rechtecke, nicht die genaue Form der Lichtung.</li>
+      <li>Das Ergebnis ist eine Obermenge: Kein echter Treffer fehlt, aber die Knöchlein im Rechteck kommen dazu.
+          Ohne Spatial Index geht es nicht.</li>
+      <li>Gut für eine schnelle grobe Vorauswahl, etwa alle Objekte in einem Kartenausschnitt.</li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 27 - Eine Million Baeume                           Kapitel 8 -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="2:00" data-start-run="baeume-funktion">
+    <h2 class="kopf">Eine Million Bäume: Welche stehen im Umkreis von 50 m ums Hexenhaus?</h2>
+    <div class="grid-2">
+      <div>
+<pre class="sql">-- Funktion: läuft für jede Zeile
+select count(*) as baeume
+  from baum b
+  cross join ort h
+  where h.name = 'Hexenhaus'
+    and sdo_geom.sdo_distance(b.geo, h.geo, pa_geo.toleranz()) &lt;= 50;
+
+-- Operator: fragt zuerst den Spatial Index
+select count(*) as baeume
+  from baum b
+  cross join ort h
+  where h.name = 'Hexenhaus'
+    and sdo_within_distance(b.geo, h.geo, 'distance=50') = 'TRUE';</pre>
+        <p class="note small" style="margin-top: 1em;"><code class="inline">sdo_geom</code> nutzt den Spatial Index
+           nie und rechnet alle eine Million Bäume durch.</p>
+      </div>
+      <div>
+        <div class="live map small" data-endpoint="baeume-karte" data-view="map"
+             data-options='{"range": {"name": "Hexenhaus", "meters": 50, "farbe": "rot"}, "zoomTo": ["Hexenhaus"], "zoomMeters": 70}'></div>
+        <p class="legende">
+          <span><i style="background: #7c2d12;"></i>Hexenhaus</span>
+          <span><i style="background: rgba(220, 38, 38, 0.12); border: 2px solid #dc2626;"></i>Umkreis von 50 m</span>
+          <span><i style="background: #166534;"></i>Bäume im Umkreis</span>
+          <span><i style="background: var(--forest); border: 1px solid var(--forest-line); border-radius: 0;"></i>Wald</span>
+          <span><i style="background: var(--meadow); border: 1px dashed var(--meadow-line); border-radius: 0;"></i>Lichtung</span>
+        </p>
+      </div>
+    </div>
+    <div class="grid-2 trennlinie">
+      <div>
+        <h3>Ohne Index</h3>
+        <div style="display: flex; align-items: center; gap: 1em;">
+          <div class="button-row" style="margin: 0;"><button data-run="baeume-funktion">Abfrage starten</button></div>
+          <div class="timing" id="time-baeume-funktion">&ndash;</div>
+        </div>
+        <div class="live table" data-endpoint="baeume-plan-funktion" data-view="pre"
+             data-options='{"column": "planzeile"}' style="margin-top: 0.4em;"></div>
+      </div>
+      <div>
+        <h3>Mit Index</h3>
+        <div style="display: flex; align-items: center; gap: 1em;">
+          <div class="button-row" style="margin: 0;"><button data-run="baeume-index">Abfrage starten</button></div>
+          <div class="timing" id="time-baeume-index">&ndash;</div>
+        </div>
+        <div class="live table" data-endpoint="baeume-plan" data-view="pre"
+             data-options='{"column": "planzeile"}' style="margin-top: 0.4em;"></div>
+      </div>
+    </div>
+    <div class="hexe fusszeile">Ohne Index tastet die Hexe jeden Finger im ganzen Wald ab.</div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 28 - Die weisse Ente                               Kapitel 9 -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="2:00">
+    <div class="szene">
+      <div class="text">
+        <span class="kapitel">Kapitel 9 &middot; Die weiße Ente</span>
+        <p>Die Kinder können fliehen und nehmen die Perlen und Edelsteine der Hexe mit. Auf dem Weg nach Hause kommen
+           sie an ein großes Wasser:
+           „Entchen, Entchen, da steht Gretel und Hänsel. Kein Steg und keine Brücke, nimm uns auf deinen weißen Rücken.“</p>
+        <div class="dialog">
+          <p><b>Hänsel:</b> „Kreuzt unser Fluchtweg das Wasser? Das hätte ich gern vorher gewusst.“</p>
+          <p></p>
+        </div>
+      </div>
+      <div class="live map mini" data-endpoint="karte" data-view="map" data-options='{"only": ["Wald", "See", "Lichtung", "Elternhaus", "Kieselstein", "Feuerstelle", "Irrweg", "Hexenhaus", "Hänsel", "Gretel", "Heimweg", "Fluchtweg"], "bbox": [657200, 5481150, 661800, 5484450]}'></div>
+    </div>
+    <h2 class="kopf">Wie weit trägt die Ente die Kinder?</h2>
+    <div class="grid-2" style="grid-template-columns: 1.42fr 1fr;">
+      <div>
+        <h3>Das Stück über dem Wasser</h3>
+<pre class="sql">select round(sdo_geom.sdo_length(sdo_geom.sdo_intersection(w.geo, s.geo, pa_geo.toleranz()),
+                                 pa_geo.toleranz())) as meter_ueber_wasser
+  from weg w
+  cross join flaeche s
+  where w.name = 'Fluchtweg'
+    and s.name = 'See';</pre>
+        <div class="live table" data-endpoint="ente" data-view="table"></div>
+        <p class="small muted" style="margin-top: 1em;">Wie viele Kilometer einer Stromleitung verlaufen durch ein
+           Schutzgebiet? Dieselbe Art von Frage.</p>
+      </div>
+      <div>
+        <h3>Der Weg nach Hause</h3>
+        <div class="live map" data-endpoint="ente-karte" data-view="map"
+             data-options='{"zoomTo": ["Fluchtweg"], "labels": ["See", "Fluchtweg", "Ente", "Hexenhaus", "Elternhaus"]}'></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 29 - Epilog                                           Epilog -->
+  <!-- ============================================================ -->
+  <section class="slide" data-duration="1:00">
+    <div class="szene">
+      <div class="text">
+        <span class="kapitel">Epilog &middot; &hellip; dann querien sie noch heute</span>
+        <p>Die Kinder schütten Perlen und Edelsteine aus ihren Taschen, und alle Sorge hat ein Ende.</p>
+      </div>
+      <div class="live map mini" data-endpoint="karte" data-view="map" data-options='{"bbox": [657200, 5481150, 661800, 5484450]}'></div>
+    </div>
+    <h2 class="kopf">Die Perlen zum Mitnehmen</h2>
+    <div class="grid-2">
+      <ol style="line-height: 1.6;">
+        <li>Spatial ist schon da: in jeder Oracle-Datenbank, ohne Zusatzlizenz.</li>
+        <li>Ein Datentyp für alles: <code class="inline">SDO_GEOMETRY</code>, rein und raus mit WKT und GeoJSON.</li>
+        <li>Immer eine SRID setzen &ndash; und x = Länge, y = Breite.</li>
+        <li>Die Toleranz an einer Stelle; ohne SRID gilt sie in Grad.</li>
+        <li>Linien dürfen sich kreuzen, Flächen nicht: prüfen und reparieren.</li>
+        <li>Löcher zählen nicht: Die Lichtung gehört nicht zum Wald.</li>
+        <li>Ohne Index tastet die Hexe jeden Finger ab.</li>
+      </ol>
+      <div>
+        <p class="small"><strong>Das Versprechen</strong></p>
+<pre class="sql">-- Wie weit ist es?
+sdo_geom.sdo_distance(a.geo, b.geo, pa_geo.toleranz())
+-- Was ist in der Nähe?
+sdo_nn(r.geo, k.geo, 'sdo_batch_size=10', 1) = 'TRUE'
+-- Was liegt im Gebiet?
+sdo_relate(l.geo, g.geo, 'mask=inside') = 'TRUE'</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 30 - Schluss, QR-Codes, Fragen                 Epilog + Fragen -->
+  <!-- ============================================================ -->
+  <section class="slide center" data-duration="3:00">
+    <p class="quote" style="margin: 0 auto;">
+      Und wenn sie nicht gestorben sind, dann querien sie noch heute.
+    </p>
+    <div class="qr-grid">
+      <figure><div class="qr">QR-Code<br>GitHub-Repo</div><figcaption>Folien und Zaubersprüche</figcaption></figure>
+      <figure><div class="qr">QR-Code<br>linkedin.com/in/karinpatenge</div><figcaption>Karin Patenge</figcaption></figure>
+      <figure><div class="qr">QR-Code<br>linkedin.com/in/knut-göttling-87139a7a</div><figcaption>Knut Göttling</figcaption></figure>
+    </div>
+    <h2 style="margin-top: 1em;">Fragen?</h2>
+    <p class="small muted">Mein Märchen ist aus, dort läuft eine Maus &ndash; wer sie fängt, darf eine Frage stellen.</p>
+  </section>
+
+</div>
+
+<div class="footer-text">Hänsel und Gretel im Geodatenwald &middot; Gretel Patenge &middot; Hänsel Göttling &middot; DOAG 2026</div>
+
+<nav class="controls">
+  <button id="prev" title="Zurück (←)">&#8249;</button>
+  <span class="counter" id="counter">1 / 1</span>
+  <span class="counter clock" id="clock"></span>
+  <button id="next" title="Weiter (→)">&#8250;</button>
+</nav>
+<div class="keys">
+  <kbd>←</kbd> <kbd>→</kbd> blättern &middot; <kbd>F</kbd> Vollbild &middot; <kbd>B</kbd> schwarz &middot;
+  <kbd>T</kbd> Zeit &middot; <kbd>R</kbd> Uhr zurück &middot; <kbd>Z</kbd> Zauberspruch hell/dunkel
+</div>
+
+<script>
+// ORDS-Modul mit allen Live-Daten der Folien (Schema-Alias doag_spatial, Modulpfad /folien/)
+const ORDS_BASE = 'http://localhost:8080/ords/doag_spatial/folien/';
+const FETCH_TIMEOUT_MS = 30000;
+
+// ---------------------------------------------------------------------------------------------------------------------
+// SQL einfärben
+// ---------------------------------------------------------------------------------------------------------------------
+(function () {
+  const keywords = new Set(('select from where and or in as order by group fetch first row rows only with union all ' +
+    'insert into values create replace package body is begin end return function constant number deterministic ' +
+    'cross join on null table desc asc count round listagg within upper index indextype not').split(' '));
+
+  function escapeHtml(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+  document.querySelectorAll('pre.sql').forEach(pre => {
+    const src = pre.textContent;
+    const token = /(--[^\n]*)|('(?:[^']|'')*')|(\b\d+(?:\.\d+)?(?:e\d+)?\b)|([A-Za-zÄÖÜäöüß_][A-Za-z0-9ÄÖÜäöüß_$]*)|([\s\S])/g;
+    let html = '', m;
+    while ((m = token.exec(src)) !== null) {
+      if (m[1]) html += `<span class="comment">${escapeHtml(m[1])}</span>`;
+      else if (m[2]) html += `<span class="str">${escapeHtml(m[2])}</span>`;
+      else if (m[3]) html += `<span class="num">${m[3]}</span>`;
+      else if (m[4]) html += keywords.has(m[4]) ? `<span class="kw">${m[4]}</span>` : m[4];
+      else html += escapeHtml(m[5]);
+    }
+    pre.innerHTML = html;
+  });
+})();
+
+// ---------------------------------------------------------------------------------------------------------------------
+// WKT lesen: liefert { points: [[x, y]], lines: [[[x, y], ...]], polygons: [[ring, ...]] }
+// ---------------------------------------------------------------------------------------------------------------------
+function parseWkt(wkt) {
+  const match = /^\s*([A-Za-z]+)\s*([\s\S]*)$/.exec(wkt || '');
+  const result = { points: [], lines: [], polygons: [] };
+  if (!match || /^EMPTY/i.test(match[2].trim())) return result;
+  const type = match[1].toUpperCase();
+  const number = '-?\\d+(?:\\.\\d+)?(?:[eE][-+]?\\d+)?';
+  const json = match[2].trim()
+    .replace(new RegExp(`(${number})\\s+(${number})(?:\\s+${number})*`, 'g'), '[$1,$2]')
+    .replace(/\(/g, '[').replace(/\)/g, ']');
+  const coords = JSON.parse(json);
+  const isPoint = c => typeof c[0] === 'number';
+  switch (type) {
+    case 'POINT':           result.points.push(coords[0]); break;
+    case 'LINESTRING':      result.lines.push(coords); break;
+    case 'POLYGON':         result.polygons.push(coords); break;
+    case 'MULTIPOINT':      coords.forEach(c => result.points.push(isPoint(c) ? c : c[0])); break;
+    case 'MULTILINESTRING': coords.forEach(c => result.lines.push(c)); break;
+    case 'MULTIPOLYGON':    coords.forEach(c => result.polygons.push(c)); break;
+  }
+  return result;
+}
+
+// CSS-Klasse aus dem Namen: "Hexenhaus" -> "hexenhaus", "Überfahrt" -> "ueberfahrt"
+function classKey(name) {
+  return String(name || '').toLowerCase()
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+    .replace(/[^a-z0-9]+/g, '_');
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Datenzugriff
+// ---------------------------------------------------------------------------------------------------------------------
+const cache = new Map();
+
+async function fetchItems(endpoint, force, timeoutMs) {
+  // eingefrorener Stand ohne Datenbank (siehe Export): Daten liegen in window.SNAPSHOT
+  if (window.SNAPSHOT) {
+    if (!(endpoint in window.SNAPSHOT)) throw new Error(`nicht im Stand: ${endpoint}`);
+    return window.SNAPSHOT[endpoint];
+  }
+  if (!force && cache.has(endpoint)) return cache.get(endpoint);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs || FETCH_TIMEOUT_MS);
+  try {
+    const response = await fetch(ORDS_BASE + endpoint, { signal: controller.signal });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const items = (await response.json()).items || [];
+    cache.set(endpoint, items);
+    return items;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Live-Felder zeichnen
+// ---------------------------------------------------------------------------------------------------------------------
+const numberFormat = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 6 });
+const plainFormat = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 6, useGrouping: false });
+let svgCounter = 0;
+
+function escapeText(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function renderTable(box, items, options) {
+  if (items.length === 0) { box.innerHTML = '<p class="muted small">keine Zeilen</p>'; return; }
+  const columns = options.columns || Object.keys(items[0]).filter(c => c !== 'links');
+  const plain = new Set(options.plain || []);
+  let html = '<table><tr>' + columns.map(c => `<th>${escapeText(c)}</th>`).join('') + '</tr>';
+  items.forEach(item => {
+    html += '<tr>' + columns.map(c => {
+      const value = item[c];
+      if (typeof value === 'number') {
+        return `<td class="num">${(plain.has(c) ? plainFormat : numberFormat).format(value)}</td>`;
+      }
+      const text = value === null || value === undefined ? '' :
+                   typeof value === 'object' ? JSON.stringify(value) : String(value);
+      return `<td class="${text.length > 40 ? 'wrap' : ''}">${escapeText(text)}</td>`;
+    }).join('') + '</tr>';
+  });
+  box.innerHTML = html + '</table>';
+}
+
+function renderPre(box, items, options) {
+  box.innerHTML = '<pre style="margin: 0.3em 0; font-size: 0.5em;">' +
+                  escapeText(items.map(i => i[options.column]).join('\n')) + '</pre>';
+}
+
+// Zustände aus den Abfragen als Text für die Beschriftung
+const ZUSTAND_TEXT = { naechster: 'nächster', im_umkreis: 'im Umkreis' };
+
+function renderMap(box, items, options) {
+  const only = options.only ? new Set(options.only) : null;
+  const shapes = items
+    .map(item => ({ item, name: item.name, geometry: parseWkt(item.wkt) }))
+    .filter(s => !only || only.has(s.name));
+
+  // Anzahl der Ringe des Waldes für die Folien 17 und 18
+  if (options.rings) {
+    shapes.forEach(s => {
+      if (s.name === 'Wald') s.geometry.polygons = s.geometry.polygons.map(p => p.slice(0, options.rings));
+    });
+  }
+
+  // umschließendes Rechteck in Datenkoordinaten
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const extend = (x, y) => { minX = Math.min(minX, x); maxX = Math.max(maxX, x); minY = Math.min(minY, y); maxY = Math.max(maxY, y); };
+  const zoomShapes = options.zoomTo ? shapes.filter(s => options.zoomTo.includes(s.name)) : shapes;
+  zoomShapes.forEach(s => {
+    s.geometry.points.forEach(p => extend(p[0], p[1]));
+    s.geometry.lines.forEach(l => l.forEach(p => extend(p[0], p[1])));
+    s.geometry.polygons.forEach(pg => pg.forEach(r => r.forEach(p => extend(p[0], p[1]))));
+  });
+  if (options.bbox) [minX, minY, maxX, maxY] = options.bbox;
+  if (!isFinite(minX)) { box.innerHTML = '<div class="offline">keine Geometrien</div>'; return; }
+  if (options.zoomMeters) {
+    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+    minX = cx - options.zoomMeters; maxX = cx + options.zoomMeters;
+    minY = cy - options.zoomMeters; maxY = cy + options.zoomMeters;
+  }
+  const padding = Math.max(maxX - minX, maxY - minY, 1) * 0.06;
+  minX -= padding; minY -= padding; maxX += padding; maxY += padding;
+  const width = maxX - minX, height = maxY - minY;
+  const unit = Math.max(width, height) / 100;
+
+  const id = ++svgCounter;
+  const pt = p => `${p[0]},${-p[1]}`;
+  const ringPath = r => 'M' + r.map(pt).join('L') + 'Z';
+  const linePath = l => 'M' + l.map(pt).join('L');
+  const arrowMarker = `url(#arrow-${id})`;
+  const after = new Set(options.reveal || []);
+
+  let body = '';
+  let labels = '';
+  let rangeRand = '';
+  shapes.forEach(s => {
+    const classes = (options.defaultKind ? `k-${options.defaultKind} ` : '') + `k-${classKey(s.name)}` +
+                    (s.item.zustand ? ` s-${s.item.zustand}` : '') +
+                    (after.has(s.name) ? ' hidden-until-drawn' : '');
+    s.geometry.polygons.forEach(polygon => {
+      body += `<path class="${classes}" d="${polygon.map(ringPath).join('')}"/>`;
+      if (options.arrows === true || (Array.isArray(options.arrows) && options.arrows.includes(s.name))) {
+        polygon.forEach(ring => {
+          body += `<path class="ring-arrows" marker-mid="${arrowMarker}" d="${'M' + ring.map(pt).join('L')}"/>`;
+        });
+      }
+    });
+    s.geometry.lines.forEach(line => {
+      const animated = options.animate === s.name ? ' data-animate="1"' : '';
+      body += `<path class="${classes}" d="${linePath(line)}"${animated}/>`;
+      // Laufrichtung: je Abschnitt zwei Pfeile, bei einem und zwei Dritteln der Strecke
+      if (options.lineArrows) {
+        line.slice(1).forEach((b, i) => {
+          const a = line[i];
+          const at = t => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+          body += `<path class="ring-arrows" marker-mid="${arrowMarker}" d="${linePath([a, at(1 / 3), at(2 / 3), b])}"/>`;
+        });
+      }
+    });
+    s.geometry.points.forEach(p => {
+      const radius = s.name === 'Baum' ? unit * 0.6 : unit * 1.4;
+      body += `<circle class="${classes}" cx="${p[0]}" cy="${-p[1]}" r="${radius}"/>`;
+      if (options.range && options.range.name === s.name) {
+        // Fläche des Umkreises unter allem, sein Rand über den Flächen, damit Wald und Lichtung ihn nicht verdecken
+        const farbe = options.range.farbe ? ` range-${options.range.farbe}` : '';
+        body = `<circle class="range${farbe}" cx="${p[0]}" cy="${-p[1]}" r="${options.range.meters}"/>` + body;
+        rangeRand = `<circle class="range${farbe} range-rand" cx="${p[0]}" cy="${-p[1]}" r="${options.range.meters}"/>`;
+      }
+    });
+    if (options.labels && s.name) {
+      // Punkte am Punkt, Linien am mittleren Punkt, Flächen am obersten Punkt des äußeren Rings
+      const line = s.geometry.lines[0];
+      const ring = s.geometry.polygons[0] && s.geometry.polygons[0][0];
+      const anchor = s.geometry.points[0] ||
+                     (line && line[Math.floor(line.length / 2)]) ||
+                     (ring && ring.reduce((top, p) => (p[1] > top[1] ? p : top)));
+      // Kieselsteine tragen ihre Nummer, Treffer einer Abfrage zusätzlich ihren Zustand
+      const text = s.name + (s.item.nummer != null ? ` ${s.item.nummer}` : '') +
+                   (ZUSTAND_TEXT[s.item.zustand] ? ` (${ZUSTAND_TEXT[s.item.zustand]})` : '');
+      // labels: true beschriftet alles, eine Liste nur die genannten Beschriftungen
+      const gewuenscht = options.labels === true || options.labels.includes(text);
+      if (anchor && gewuenscht) {
+        labels += `<text class="label${after.has(s.name) ? ' hidden-until-drawn' : ''}" ` +
+                  `x="${anchor[0] + unit * 2 - minX}" y="${maxY - anchor[1] - unit}" font-size="${unit * 3.2}">` +
+                  `${escapeText(text)}</text>`;
+      }
+    }
+  });
+
+  box.innerHTML =
+    `<svg viewBox="${minX} ${-maxY} ${width} ${height}" preserveAspectRatio="xMidYMid meet">` +
+    `<defs><marker id="arrow-${id}" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="${unit * 3}" ` +
+    `markerHeight="${unit * 3}" orient="auto" markerUnits="userSpaceOnUse">` +
+    `<path d="M0,1 L9,5 L0,9 z" fill="#dc2626"/></marker></defs>` + body + rangeRand +
+    // Beschriftungen relativ zum Ausschnitt: Bei Koordinaten um 658000 m und kleiner Schrift zeichnet der Browser
+    // Text sonst nicht mehr
+    `<svg x="${minX}" y="${-maxY}" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" ` +
+    `overflow="visible">${labels}</svg></svg>`;
+
+  // Beschriftungen, die einen Punkt oder eine frühere Beschriftung überdecken, nach unten oder oben an eine freie
+  // Stelle rücken; die Punkte liegen in Kartenkoordinaten, die Beschriftungen relativ zum Ausschnitt
+  const placed = [...box.querySelectorAll('circle:not(.range)')].map(c => {
+    const b = c.getBBox();
+    return { x: b.x - minX, y: b.y + maxY, width: b.width, height: b.height };
+  });
+  const overlaps = (a, b) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+  box.querySelectorAll('text.label').forEach(text => {
+    // Ragt die Beschriftung über den rechten Rand, steht sie links vom Punkt
+    if (text.getBBox().x + text.getBBox().width > width) {
+      text.setAttribute('x', Number(text.getAttribute('x')) - unit * 4);
+      text.setAttribute('text-anchor', 'end');
+    }
+    const y0 = Number(text.getAttribute('y'));
+    for (const dy of [0, unit * 4, -unit * 4, unit * 8, -unit * 8]) {
+      text.setAttribute('y', y0 + dy);
+      if (!placed.some(p => overlaps(text.getBBox(), p))) break;
+    }
+    placed.push(text.getBBox());
+  });
+
+  const animatedPath = document.body.classList.contains('druck') ? null : box.querySelector('[data-animate]');
+  if (animatedPath) {
+    // Der Weg zeichnet sich in Dauerschleife; am Ende bleibt er kurz stehen, erst dann erscheint das Ziel
+    // Die Linie hat eine feste Strichbreite (non-scaling-stroke), damit zählt auch das Strichmuster in
+    // Bildschirmpixeln: Länge in Kartenmetern mal Maßstab
+    const svg = box.querySelector('svg');
+    const length = animatedPath.getTotalLength() * svg.getBoundingClientRect().width / svg.viewBox.baseVal.width;
+    const zeichnen = 0.8;
+    const dauer = (options.seconds || 5) * 1000 / zeichnen;
+    animatedPath.style.strokeDasharray = `${length}px`;
+    animatedPath.animate([{ strokeDashoffset: `${length}px` }, { strokeDashoffset: '0px', offset: zeichnen },
+                          { strokeDashoffset: '0px' }],
+                         { duration: dauer, iterations: Infinity });
+    box.querySelectorAll('.hidden-until-drawn').forEach(e => {
+      e.classList.add('shown');
+      e.animate([{ opacity: 0 }, { opacity: 0, offset: zeichnen }, { opacity: 1, offset: zeichnen }, { opacity: 1 }],
+                { duration: dauer, iterations: Infinity });
+    });
+  } else {
+    box.querySelectorAll('.hidden-until-drawn').forEach(e => e.classList.add('shown'));
+  }
+}
+
+async function renderBox(box, force) {
+  const options = JSON.parse(box.dataset.options || '{}');
+  const view = box.dataset.view;
+  box.classList.add(view);
+  try {
+    let items;
+    if (box.dataset.static) {
+      items = JSON.parse(box.dataset.static);
+    } else {
+      box.classList.add('loading');
+      items = await fetchItems(box.dataset.endpoint, force);
+    }
+    if (view === 'map') renderMap(box, items, options);
+    else if (view === 'pre') renderPre(box, items, options);
+    else renderTable(box, items, options);
+  } catch (error) {
+    box.innerHTML = `<div class="offline">Keine Verbindung zur Datenbank<br>` +
+                    `<code>${escapeText(box.dataset.endpoint || '')}</code></div>`;
+  } finally {
+    box.classList.remove('loading');
+  }
+  if (box.dataset.endpoint) {
+    const reload = document.createElement('button');
+    reload.className = 'reload';
+    reload.title = 'Neu abfragen';
+    reload.textContent = '↻';
+    reload.addEventListener('click', () => renderBox(box, true));
+    box.appendChild(reload);
+  }
+}
+
+function renderLive(slide) {
+  slide.querySelectorAll('.live').forEach(box => renderBox(box, false));
+}
+
+// Weltkarte: Projektion umschalten, dazu die Schlagwörter der gewählten Projektion
+const worldInfo = document.getElementById('world-info');
+worldInfo.innerHTML = document.querySelector('#world-switch button.active').dataset.info;
+document.querySelectorAll('#world-switch button').forEach(button => {
+  button.addEventListener('click', () => {
+    document.querySelectorAll('#world-switch button').forEach(b => b.classList.toggle('active', b === button));
+    worldInfo.innerHTML = button.dataset.info;
+    const map = document.getElementById('world-map');
+    map.dataset.endpoint = `weltkarte?srid=${button.dataset.srid}`;
+    renderBox(map, false);
+  });
+});
+// Spatial Index: Abfrage ausführen und die im Browser gemessene Zeit zeigen.
+// Die Abfrage ohne Index dauert über eine Minute; sie startet deshalb von selbst, sobald ihre Folie erscheint
+// (data-start-run), und zeigt bis zum Ergebnis die laufende Zeit.
+const RUN_TIMEOUT_MS = 600000;
+const timedRuns = {};
+
+function runTimed(endpoint) {
+  if (timedRuns[endpoint] && timedRuns[endpoint].running) return;
+  const target = document.getElementById(`time-${endpoint}`);
+  // im eingefrorenen Stand die zuletzt gemessene Zeit zeigen
+  if (window.SNAPSHOT_TIMES) {
+    target.textContent = window.SNAPSHOT_TIMES[endpoint] || '–';
+    timedRuns[endpoint] = { running: false };
+    return;
+  }
+  const start = performance.now();
+  const run = timedRuns[endpoint] = { running: true };
+  const formatSeconds = () => numberFormat.format(Math.round((performance.now() - start) / 10) / 100);
+  target.textContent = 'läuft …';
+  const ticker = setInterval(() => { target.textContent = `läuft seit ${formatSeconds()} s …`; }, 1000);
+  fetchItems(endpoint, true, RUN_TIMEOUT_MS)
+    .then(items => { target.textContent = `${formatSeconds()} s · ${items[0] ? items[0].baeume : '?'} Bäume`; })
+    .catch(() => { target.textContent = 'keine Verbindung'; })
+    .finally(() => { clearInterval(ticker); run.running = false; });
+}
+
+document.querySelectorAll('[data-run]').forEach(button => {
+  button.addEventListener('click', () => runTimed(button.dataset.run));
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Navigation
+// ---------------------------------------------------------------------------------------------------------------------
+(function () {
+  const slides    = Array.from(document.querySelectorAll('.slide'));
+  const total     = slides.length;
+  const prevBtn   = document.getElementById('prev');
+  const nextBtn   = document.getElementById('next');
+  const counterEl = document.getElementById('counter');
+  const clockEl   = document.getElementById('clock');
+  const progress  = document.getElementById('progress');
+
+  // geplanter Beginn jeder Folie in Sekunden, aus data-duration="m:ss"
+  const toSeconds = t => { const [m, s] = (t || '0:00').split(':').map(Number); return m * 60 + s; };
+  const formatTime = sec => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
+  const plannedStart = [];
+  slides.reduce((sum, s, i) => { plannedStart[i] = sum; return sum + toSeconds(s.dataset.duration); }, 0);
+
+  let idx = 0;
+  let talkStart = null;
+
+  function updateClock() {
+    const actual = talkStart ? formatTime((Date.now() - talkStart) / 1000) : '0:00';
+    clockEl.textContent = `Soll ${formatTime(plannedStart[idx])} · Ist ${actual}`;
+  }
+
+  function show(n) {
+    idx = Math.max(0, Math.min(n, total - 1));
+    if (idx > 0 && talkStart === null) talkStart = Date.now();
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    document.body.classList.toggle('first-slide', idx === 0);
+    document.body.classList.toggle('last-slide', idx === total - 1);
+    counterEl.textContent = `${idx + 1} / ${total}`;
+    prevBtn.disabled = (idx === 0);
+    nextBtn.disabled = (idx === total - 1);
+    progress.style.width = `${((idx + 1) / total) * 100}%`;
+    history.replaceState(null, '', `#${idx + 1}`);
+    renderLive(slides[idx]);
+    const startRun = slides[idx].dataset.startRun;
+    if (startRun && !timedRuns[startRun]) runTimed(startRun);
+    updateClock();
+  }
+
+  function fromHash() {
+    const n = parseInt(location.hash.replace('#', ''), 10);
+    if (!isNaN(n) && n >= 1 && n <= total) show(n - 1);
+    else show(0);
+  }
+
+  prevBtn.addEventListener('click', () => show(idx - 1));
+  nextBtn.addEventListener('click', () => show(idx + 1));
+  window.addEventListener('hashchange', fromHash);
+  setInterval(updateClock, 1000);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'PageDown':
+      case ' ':
+        show(idx + 1); e.preventDefault(); break;
+      case 'ArrowLeft':
+      case 'PageUp':
+        show(idx - 1); e.preventDefault(); break;
+      case 'Home':
+        show(0); e.preventDefault(); break;
+      case 'End':
+        show(total - 1); e.preventDefault(); break;
+      case 'f':
+      case 'F':
+        if (document.fullscreenElement) document.exitFullscreen();
+        else document.documentElement.requestFullscreen();
+        break;
+      case 'b':
+      case 'B':
+      case '.':
+        document.body.classList.toggle('blackout');
+        break;
+      case 't':
+      case 'T':
+        document.body.classList.toggle('show-clock');
+        break;
+      case 'r':
+      case 'R':
+        talkStart = idx > 0 ? Date.now() : null;
+        updateClock();
+        break;
+      case 'z':
+      case 'Z':
+        document.body.classList.toggle('tag');
+        try { localStorage.setItem(SPELL_STYLE_KEY, document.body.classList.contains('tag') ? 'tag' : 'nacht'); } catch (error) {}
+        break;
+    }
+  });
+
+  // Zauberspruch hell (tag) oder dunkel (nacht): gemerkte Wahl, sonst hell für Druck und eingefrorenen Stand
+  const SPELL_STYLE_KEY = 'zauberspruch-stil';
+  const printing = new URLSearchParams(location.search).has('druck');
+  let storedStyle = null;
+  try { storedStyle = localStorage.getItem(SPELL_STYLE_KEY); } catch (error) {}
+  const lightSpells = printing || (storedStyle ? storedStyle === 'tag' : !!window.SNAPSHOT);
+  document.body.classList.toggle('tag', lightSpells);
+
+  if (printing) {
+    // Druckansicht: alle Folien zeigen und alle Live-Felder füllen
+    document.body.classList.add('druck');
+    slides.forEach(s => { s.classList.add('active'); renderLive(s); });
+    document.querySelectorAll('[data-run]').forEach(button => runTimed(button.dataset.run));
+  } else {
+    fromHash();
+  }
+})();
+</script>
+
+</body>
+</html>

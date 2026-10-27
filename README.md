@@ -28,12 +28,34 @@ Spatial Queries, Geometrien
 
 ```
 Vortrag/
-├── Folien.html     -- Folien als lokale Webseite; Karten und Abfrageergebnisse kommen live per ORDS aus der Datenbank
-└── assets/         -- Bilder, Schriften und Bibliotheken der Folien (ohne Internetzugriff lauffähig)
-Datenbank/          -- SQL-Skripte: Schema, Märchendaten, ORDS-Endpunkte, Zurücksetzen
+├── Folien.html            -- Folien als lokale Webseite; Karten und Abfrageergebnisse kommen live per ORDS
+├── start.cmd              -- startet den lokalen Webserver und öffnet die Folien
+└── assets/                -- Bilder und Bibliotheken der Folien (ohne Internetzugriff lauffähig)
+Datenbank/
+├── 00_zuruecksetzen.sql   -- als SYS: löscht den Benutzer DOAG_SPATIAL samt allen Objekten
+├── 01_benutzer.sql        -- als SYS: legt den Benutzer DOAG_SPATIAL an (fragt das Kennwort ab)
+├── pa_geo.pck             -- Package mit der zentralen Toleranz
+├── 02_tabellen.sql        -- Tabellen ort, weg, flaeche, baum, land mit Metadaten und Spatial Indizes
+├── 03_maerchendaten.sql   -- Wald, See, Lichtung, Orte, Wege und rund eine Million Bäume
+├── 05_ords.sql            -- ORDS-Modul „folien“ mit allen Endpunkten der Folien
+└── 06_pruefung.sql        -- prüft die Märchendaten; jede Zeile muss „ja“ zeigen
 ```
 
 ## Voraussetzungen
 
-- Oracle AI Database 26ai (lokal, z. B. 26ai Free) mit ORDS
+- Oracle AI Database 26ai (lokal, z. B. 26ai Free) mit ORDS unter `http://localhost:8080/ords/`
+- Python 3 für den lokalen Webserver
 - Ein aktueller Browser
+
+## Einrichten
+
+In FREEPDB1 der Reihe nach ausführen: `00_zuruecksetzen.sql` und `01_benutzer.sql` als SYS, danach als DOAG_SPATIAL
+`pa_geo.pck`, `02_tabellen.sql`, `03_maerchendaten.sql` (einige Minuten), `05_ords.sql` und `06_pruefung.sql`.
+
+## Folien zeigen
+
+`Vortrag\start.cmd` starten. Es öffnet die Folien unter `http://localhost:8765/Folien.html`. Als Datei geöffnet
+(Doppelklick auf `Folien.html`) lehnt ORDS die Abrufe ab, weil der Browser dann keine Herkunft mitschickt.
+
+Tasten: Pfeiltasten oder Leertaste blättern, `F` Vollbild, `B` Bildschirm schwarz, `T` Soll- und Ist-Zeit einblenden,
+`R` Uhr zurücksetzen, `Z` Zaubersprüche hell oder dunkel (der Browser merkt sich die Wahl).
