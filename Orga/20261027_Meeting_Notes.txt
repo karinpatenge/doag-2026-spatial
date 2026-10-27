@@ -1,0 +1,37 @@
+Meeting-Objekte für DOAG: (Knut/Karin) Vortragskonzept sind bereit!
+
+Meeting-Zusammenfassung
+
+Kurze Zusammenfassung
+Karin und Knut führten eine umfassende Besprechung über ihre gemeinsame Präsentation zu Oracle Spatial und Geometriedaten durch. Sie diskutierten die Strukturierung ihres Github-Repositories, wobei Karin zusagte, ihre Materialien in Knuts Repository zu integrieren. Knut präsentierte seine Arbeit an einer detaillierten Präsentation, die verschiedene Aspekte von Oracle Spatial abdeckt, von Koordinatensystemen bis hin zu Geometrie-Validierung und Indexierung. Sie besprachen technische Details wie Toleranzbereiche, verschiedene Koordinatensysteme und die Verwendung von SDO-Operatoren. Karin schlug vor, sprechblase-ähnliche Elemente mit Märchenfiguren hinzuzufügen, um die Präsentation visuell ansprechender zu machen. Sie einigten sich darauf, dass Knut die besprochenen Änderungen in seine Präsentation integrieren wird, während Karin die entsprechenden Skripte bereitstellen wird.
+
+Nächste Schritte
+Karin
+Storybook, Ridme, Images und Präsentationsstruktur in das gemeinsame Repository einpflegen (neue Branche anlegen und Inhalte übertragen).
+Bei der Doag nach potenziellen Kontakten/Einstellungsfirmen für Knut Ausschau halten und ihm weitere Kandidaten nennen.
+Knut
+Die von Karin bereitgestellten Materialien (Storybook, Ridme, Images) in die Präsentation einbauen.
+Grafische Elemente (z.B. Sprechblasen-Figuren für Hänsel und Gretel) in die Präsentation einbauen, um den Märchencharakter zu verstärken.
+Den Märchenbezug in den Anwendungsbeispielen (z.B. "Wie weit ist es zurück zum Hexenhaus") herstellen.
+Die Folie zu den Geometrietypen korrigieren (2D vs. 3D, Typennummern abgleichen).
+Die Distanzberechnungen und Toleranz-Einstellungen überprüfen und korrigieren, insbesondere die Diskrepanz bei der Distanz in verschiedenen Koordinatensystemen.
+Die Validierungs- und Korrekturfunktionen (Validate/Rectify Geometry) in der Präsentation klar auseinanderhalten und die Darstellung der Ergebnisse korrigieren.
+Einen Fall mit doppelten/dichten Stützpunkten (Toleranzproblem) als drittes Beispiel in die Validierungs-Folie aufnehmen.
+Bei der Index-Erklärung den optimierten Index für Punkte (mit Parameter layer_gtype=point) erwähnen.
+Die Story zur Index-Erklärung (Hexe und Bäume) überarbeiten, um sie flüssiger zu machen.
+Sich bei Karsten Sarski bezüglich einer möglichen Stelle melden.
+Die von Karin geschickte Transkription/Session an den Assistenten (Horst) zur weiteren Verarbeitung geben.
+Zusammenfassung
+Märchen-Präsentation Repository Zusammenarbeit
+Karin und Knut besprachen die Zusammenarbeit an einem gemeinsamen Repository für ihre Arbeit an einer Präsentation über Märchen und GIS. Sie einigten sich darauf, dass Knut bereits ein Repository erstellt hatte, das Karin mit ihren Materialien ergänzen würde. Karin zeigte ihre Präsentationsstruktur mit Skripten, Bildern und dem Storybook, während Knut seine Webseitenversion mit interaktiven Elementen präsentierte. Sie diskutierten auch über Karstens potenzielle Jobsuche und die Notwendigkeit, mit verschiedenen Unternehmen zu sprechen, einschließlich Logicalis und Accenture.
+
+Koordinatensysteme und Kartenvisualisierung
+Knut präsentierte verschiedene Koordinatensysteme und deren Auswirkungen auf die Kartenvisualisierung, einschließlich Längen- und Breitengrad-Projektionen sowie WebMercator und Mollweide. Er erklärte, warum die Wahl des Koordinatensystems wichtig ist und zeigte anhand von Beispielen die unterschiedlichen Abweichungen zwischen den Systemen, wobei Mollweide die beste Flächentreue bietet. Karin bat Knut, die Demonstration später erneut zu zeigen und die technische Implementierung der Datenbankverbindung zu erklären.
+
+Datenverarbeitungstoleranz und Koordinatensysteme
+Knut und Karin diskutierten über Toleranz in der Datenverarbeitung und Koordinatensysteme. Knut erklärte, wie er eine Toleranz von 0,05 cm implementiert hat und die Bedeutung der korrekten Distanzberechnung zwischen verschiedenen Koordinatensystemen erörterte. Sie analysierten die Distanzen zwischen Feuerstellen und Kieselsteinen sowie die Berechnung von Heim- und Irrwegen im Wald, wobei Knut die Notwendigkeit betonte, Geometrien mit dem WKT-Format zu validieren.
+
+Geometriedaten-Validierung und Optimierung
+Knut und Karin diskutierten über die Validierung und Bearbeitung von Geometriedaten, wobei sie sich auf Probleme mit der Validate Geometry-Funktion konzentrierten, die unerwartet Geometrientypen ändert. Sie identifizierten, dass die Funktion fälschlicherweise die Ergebnisse korrigiert, anstatt nur zu validieren, was Karin als problematisch bezeichnete. Die beiden besprachen auch die Implementierung von Indexen für die Optimierung von Geodatenabfragen und planten, die Präsentation mit zusätzlichen grafischen Elementen und Beispielen zu verfeinern, wobei Karin vorschlug, Märchencharaktere in die Visualisierungen einzubauen.
+
+Attendees: Karin Patenge (Organizer), Knut (External)
