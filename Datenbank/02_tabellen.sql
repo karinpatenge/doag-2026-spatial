@@ -49,7 +49,7 @@ create table baum (
   geo      sdo_geometry not null annotations (description 'Standort als Punkt in ETRS89 / UTM Zone 32N (SRID 25832)'),
   constraint pk_baum primary key (baum_id)
 )
-annotations (description 'Rund eine Million zufällig verteilte Bäume im Wald')
+annotations (description 'Rund 100 000 zufällig verteilte Bäume im Wald')
 ;
 
 create table land (

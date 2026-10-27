@@ -387,11 +387,6 @@
     z-index: 100;
   }
 
-  /* Bildschirm schwarz */
-  body.blackout .slides { visibility: hidden; }
-  body.blackout { background: #000; }
-  body.blackout nav.controls, body.blackout .progress, body.blackout .footer-text, body.blackout .keys { display: none; }
-
   @media print {
     .slide { display: flex !important; page-break-after: always; height: 100vh; }
     nav.controls, .progress { display: none; }
@@ -436,7 +431,7 @@
         <span class="kapitel">Prolog &middot; Es war einmal &hellip;</span>
         <p>Vor einem großen Walde wohnte ein armer Holzhacker mit seiner Frau und seinen zwei Kindern.</p>
         <div class="dialog">
-          <p><b>Hänsel:</b> „Gretel, ich glaube, wir haben uns verlaufen.“</p>
+          <p><b>Hänsel:</b> „Gretel, was machen wir, wenn wir uns im Wald verlaufen?“</p>
           <p><b>Gretel:</b> „Keine Sorge, Hänsel. Wir haben eine Datenbank dabei.“</p>
         </div>
       </div>
@@ -1035,7 +1030,7 @@ select s.nummer
 select round(sdo_geom.sdo_length(w.geo, pa_geo.toleranz())) as weg_meter
   from heimweg w;</pre>
         <div class="live table" data-endpoint="heimweg-laenge" data-view="table"></div>
-        <h3 class="trennlinie">Luftlinie vom ersten zum letzten Stein</h3>
+        <h3 class="trennlinie" style="margin-top: 0.6em;">Luftlinie vom ersten zum letzten Stein</h3>
 <pre class="sql">select round(sdo_geom.sdo_distance(a.geo, b.geo, pa_geo.toleranz())) as luftlinie_meter
   from ort a
   cross join ort b
@@ -1052,7 +1047,7 @@ select round(sdo_geom.sdo_length(w.geo, pa_geo.toleranz())) as weg_meter
                             "labels": ["Elternhaus", "Feuerstelle", "Kieselstein 1", "Kieselstein 25"]}'></div>
       </div>
     </div>
-    <div class="hexe" style="margin-top: 1.2em;">
+    <div class="hexe" style="margin-top: 0.6em;">
       Komma statt Punkt: Wer WKT aus Zahlen mit Nachkommastellen zusammensetzt, bekommt in einer deutschen
       Sitzung „11,17“ statt „11.17“. Unsere Koordinaten sind ganze Meter &ndash; sonst
       <code class="inline">to_char(x, 'TM', 'nls_numeric_characters=.,')</code>.
@@ -1067,8 +1062,7 @@ select round(sdo_geom.sdo_length(w.geo, pa_geo.toleranz())) as weg_meter
       <div class="text">
         <span class="kapitel">Kapitel 5 &middot; Heimweg und Irrweg</span>
         <p>Bald herrscht wieder Not, und die Eltern führen die Kinder noch tiefer in den Wald. Diesmal streut Hänsel
-           Brotkrumen. Die Vögel fressen sie auf, und die Kinder irren drei Tage umher, bis sie zu einem Häuschen
-           kommen.</p>
+           Brotkrumen. Die Vögel fressen sie auf, und die Kinder irren drei Tage umher.</p>
         <div class="dialog">
           <p><b>Hänsel:</b> „Wo sind meine Brotkrumen geblieben?“</p>
           <p><b>Gretel:</b> „Die Kieselsteine waren committed, die Brotkrumen nicht.“</p>
@@ -1430,7 +1424,7 @@ select 'Falsch gedreht',
   <!-- ============================================================ -->
   <!-- 24 - Index anlegen                                 Kapitel 8 -->
   <!-- ============================================================ -->
-  <section class="slide" data-duration="0:30">
+  <section class="slide" data-duration="1:00">
     <h2 class="kopf">Index anlegen</h2>
     <p class="note" style="margin-bottom: 1.5em;">Der Spatial Index ist ein <strong>R-Baum</strong>. Das R steht
        für Rechteck (englisch rectangle): Jeder Knoten speichert das kleinste Rechteck, das alle Geometrien unter ihm
@@ -1469,8 +1463,7 @@ select 'Falsch gedreht',
               ist der aktuelle Indextyp für Spatial und wird bei jedem <code class="inline">insert</code>,
               <code class="inline">update</code> und <code class="inline">delete</code> automatisch nachgeführt.</li>
           <li>Die <strong>Operatoren</strong> wie <code class="inline">sdo_within_distance</code>,
-              <code class="inline">sdo_nn</code> oder <code class="inline">sdo_filter</code> nutzen ihn. Die Funktionen
-              aus <code class="inline">sdo_geom</code> rechnen ohne Index.</li>
+              <code class="inline">sdo_nn</code> oder <code class="inline">sdo_filter</code> nutzen ihn.</li>
         </ul>
       </div>
     </div>
@@ -1488,7 +1481,7 @@ select 'Falsch gedreht',
       </div>
       <div class="live map mini" data-endpoint="karte" data-view="map" data-options='{"only": ["Wald", "See", "Lichtung", "Elternhaus", "Kieselstein", "Feuerstelle", "Irrweg", "Hexenhaus", "Hänsel", "Gretel"], "bbox": [657200, 5481150, 661800, 5484450]}'></div>
     </div>
-    <h2 class="kopf">Das Knöchlein: Der Spatial Index ist ein R-Baum</h2>
+    <h2 class="kopf">Das Knöchlein: Primär- und Sekundärfilter</h2>
     <div class="grid-2">
       <div>
         <svg viewBox="0 -24 420 410" style="width: 100%; max-height: 55vh;" aria-label="R-Baum">
@@ -1576,7 +1569,7 @@ select count(*)                                   -- Primär- und Sekundärfilte
     and sdo_anyinteract(b.geo, l.geo) = 'TRUE';</pre>
         <div class="live table" data-endpoint="knoechlein" data-view="table"></div>
         <p class="small">Die Differenz sind die Knöchlein: Bäume im umschließenden Rechteck, die die Lichtung nicht
-           berühren. Die wenigen exakten Treffer stehen genau auf ihrem Rand.</p>
+           berühren. Auf der Lichtung selbst wachsen keine Bäume; ein exakter Treffer steht genau auf ihrem Rand.</p>
       </div>
       <div>
         <div class="live map" data-endpoint="knoechlein-karte" data-view="map"></div>
@@ -1598,10 +1591,10 @@ select count(*)                                   -- Primär- und Sekundärfilte
   </section>
 
   <!-- ============================================================ -->
-  <!-- 27 - Eine Million Baeume                           Kapitel 8 -->
+  <!-- 27 - 100 000 Baeume                                Kapitel 8 -->
   <!-- ============================================================ -->
-  <section class="slide" data-duration="2:00" data-start-run="baeume-funktion">
-    <h2 class="kopf">Eine Million Bäume: Welche stehen im Umkreis von 50 m ums Hexenhaus?</h2>
+  <section class="slide" data-duration="2:00">
+    <h2 class="kopf">100 000 Bäume: Welche stehen im Umkreis von 50 m ums Hexenhaus?</h2>
     <div class="grid-2">
       <div>
 <pre class="sql">-- Funktion: läuft für jede Zeile
@@ -1617,8 +1610,6 @@ select count(*) as baeume
   cross join ort h
   where h.name = 'Hexenhaus'
     and sdo_within_distance(b.geo, h.geo, 'distance=50') = 'TRUE';</pre>
-        <p class="note small" style="margin-top: 1em;"><code class="inline">sdo_geom</code> nutzt den Spatial Index
-           nie und rechnet alle eine Million Bäume durch.</p>
       </div>
       <div>
         <div class="live map small" data-endpoint="baeume-karte" data-view="map"
@@ -1634,25 +1625,24 @@ select count(*) as baeume
     </div>
     <div class="grid-2 trennlinie">
       <div>
-        <h3>Ohne Index</h3>
         <div style="display: flex; align-items: center; gap: 1em;">
-          <div class="button-row" style="margin: 0;"><button data-run="baeume-funktion">Abfrage starten</button></div>
+          <div class="button-row" style="margin: 0;"><button data-run="baeume-funktion">Ohne Index starten</button></div>
           <div class="timing" id="time-baeume-funktion">&ndash;</div>
         </div>
         <div class="live table" data-endpoint="baeume-plan-funktion" data-view="pre"
              data-options='{"column": "planzeile"}' style="margin-top: 0.4em;"></div>
       </div>
       <div>
-        <h3>Mit Index</h3>
         <div style="display: flex; align-items: center; gap: 1em;">
-          <div class="button-row" style="margin: 0;"><button data-run="baeume-index">Abfrage starten</button></div>
+          <div class="button-row" style="margin: 0;"><button data-run="baeume-index">Mit Index starten</button></div>
           <div class="timing" id="time-baeume-index">&ndash;</div>
         </div>
         <div class="live table" data-endpoint="baeume-plan" data-view="pre"
              data-options='{"column": "planzeile"}' style="margin-top: 0.4em;"></div>
       </div>
     </div>
-    <div class="hexe fusszeile">Ohne Index tastet die Hexe jeden Finger im ganzen Wald ab.</div>
+    <div class="hexe fusszeile">Ohne Index tastet die Hexe jeden Finger im ganzen Wald ab:
+      <code class="inline">sdo_geom</code> nutzt den Spatial Index nie und rechnet alle 100&#8239;000 Bäume durch.</div>
   </section>
 
   <!-- ============================================================ -->
@@ -1711,7 +1701,7 @@ select count(*) as baeume
         <li>Spatial ist schon da: in jeder Oracle-Datenbank, ohne Zusatzlizenz.</li>
         <li>Ein Datentyp für alles: <code class="inline">SDO_GEOMETRY</code>, rein und raus mit WKT und GeoJSON.</li>
         <li>Immer eine SRID setzen &ndash; und x = Länge, y = Breite.</li>
-        <li>Die Toleranz an einer Stelle; ohne SRID gilt sie in Grad.</li>
+        <li>Die Toleranz an einer Stelle; ohne SRID gilt sie in den Einheiten der Koordinaten.</li>
         <li>Linien dürfen sich kreuzen, Flächen nicht: prüfen und reparieren.</li>
         <li>Löcher zählen nicht: Die Lichtung gehört nicht zum Wald.</li>
         <li>Ohne Index tastet die Hexe jeden Finger ab.</li>
@@ -1731,7 +1721,7 @@ sdo_relate(l.geo, g.geo, 'mask=inside') = 'TRUE'</pre>
   <!-- ============================================================ -->
   <!-- 30 - Schluss, QR-Codes, Fragen                 Epilog + Fragen -->
   <!-- ============================================================ -->
-  <section class="slide center" data-duration="3:00">
+  <section class="slide center" data-duration="2:30">
     <p class="quote" style="margin: 0 auto;">
       Und wenn sie nicht gestorben sind, dann querien sie noch heute.
     </p>
@@ -1755,7 +1745,7 @@ sdo_relate(l.geo, g.geo, 'mask=inside') = 'TRUE'</pre>
   <button id="next" title="Weiter (→)">&#8250;</button>
 </nav>
 <div class="keys">
-  <kbd>←</kbd> <kbd>→</kbd> blättern &middot; <kbd>F</kbd> Vollbild &middot; <kbd>B</kbd> schwarz &middot;
+  <kbd>←</kbd> <kbd>→</kbd> blättern &middot; <kbd>F</kbd> Vollbild &middot;
   <kbd>T</kbd> Zeit &middot; <kbd>R</kbd> Uhr zurück &middot; <kbd>Z</kbd> Zauberspruch hell/dunkel
 </div>
 
@@ -2083,9 +2073,7 @@ document.querySelectorAll('#world-switch button').forEach(button => {
     renderBox(map, false);
   });
 });
-// Spatial Index: Abfrage ausführen und die im Browser gemessene Zeit zeigen.
-// Die Abfrage ohne Index dauert über eine Minute; sie startet deshalb von selbst, sobald ihre Folie erscheint
-// (data-start-run), und zeigt bis zum Ergebnis die laufende Zeit.
+// Spatial Index: Abfrage ausführen und die im Browser gemessene Zeit zeigen, bis zum Ergebnis die laufende Zeit.
 const RUN_TIMEOUT_MS = 600000;
 const timedRuns = {};
 
@@ -2151,8 +2139,6 @@ document.querySelectorAll('[data-run]').forEach(button => {
     progress.style.width = `${((idx + 1) / total) * 100}%`;
     history.replaceState(null, '', `#${idx + 1}`);
     renderLive(slides[idx]);
-    const startRun = slides[idx].dataset.startRun;
-    if (startRun && !timedRuns[startRun]) runTimed(startRun);
     updateClock();
   }
 
@@ -2185,11 +2171,6 @@ document.querySelectorAll('[data-run]').forEach(button => {
       case 'F':
         if (document.fullscreenElement) document.exitFullscreen();
         else document.documentElement.requestFullscreen();
-        break;
-      case 'b':
-      case 'B':
-      case '.':
-        document.body.classList.toggle('blackout');
         break;
       case 't':
       case 'T':

@@ -1,5 +1,5 @@
--- Märchendaten: Wald, See, Lichtung, Orte, Wege und rund eine Million Bäume, alle in SRID 25832 (ganze Meter).
--- Ausführen als DOAG_SPATIAL nach 02_tabellen.sql. Dauert einige Minuten, fast nur wegen der Bäume.
+-- Märchendaten: Wald, See, Lichtung, Orte, Wege und rund 100 000 Bäume, alle in SRID 25832 (ganze Meter).
+-- Ausführen als DOAG_SPATIAL nach 02_tabellen.sql. Dauert höchstens einige Minuten, fast nur wegen der Bäume.
 
 drop index if exists ids1_baum;
 delete from baum;
@@ -103,7 +103,7 @@ commit;
 -- Zufallspunkte im umschließenden Rechteck des Waldes, mit festem Startwert:
 -- jeder Lauf liefert dieselben Bäume.
 -- sdo_pointinpolygon behält nur die Punkte im Wald; See und Lichtung sind Löcher und bleiben baumfrei.
--- Von 1300 x 990 Punkten bleibt rund eine Million.
+-- Von 128 500 Punkten bleiben rund 100 000.
 begin
   dbms_random.seed(val => 4711);
 end;
@@ -113,8 +113,7 @@ insert into baum (geo)
   select sdo_geometry(2001, 25832, sdo_point_type(p.x, p.y, null), null, null)
     from table(sdo_pointinpolygon(cursor(select round(dbms_random.value(657200, 661800), 1) as x,
                                                 round(dbms_random.value(5481150, 5484450), 1) as y
-                                           from xmltable('1 to 1300') a
-                                           cross join xmltable('1 to 990') b),
+                                           from xmltable('1 to 128500')),
                                   (select f.geo from flaeche f where f.name = 'Wald'),
                                   pa_geo.toleranz())) p;
 

@@ -29,6 +29,7 @@ Spatial Queries, Geometrien
 ```
 Vortrag/
 ├── Folien.html            -- Folien als lokale Webseite; Karten und Abfrageergebnisse kommen live per ORDS
+├── Folien.pdf             -- dieselben Folien als PDF mit eingefrorenen Ergebnissen, ohne Datenbank lesbar
 ├── start.cmd              -- startet den lokalen Webserver und öffnet die Folien
 └── assets/                -- Bilder und Bibliotheken der Folien (ohne Internetzugriff lauffähig)
 Datenbank/
@@ -36,7 +37,8 @@ Datenbank/
 ├── 01_benutzer.sql        -- als SYS: legt den Benutzer DOAG_SPATIAL an (fragt das Kennwort ab)
 ├── pa_geo.pck             -- Package mit der zentralen Toleranz
 ├── 02_tabellen.sql        -- Tabellen ort, weg, flaeche, baum, land mit Metadaten und Spatial Indizes
-├── 03_maerchendaten.sql   -- Wald, See, Lichtung, Orte, Wege und rund eine Million Bäume
+├── 03_maerchendaten.sql   -- Wald, See, Lichtung, Orte, Wege und rund 100 000 Bäume
+├── 04_laender.sql         -- Ländergrenzen für die Weltkarten (Natural Earth 1:110 Mio., gemeinfrei)
 ├── 05_ords.sql            -- ORDS-Modul „folien“ mit allen Endpunkten der Folien
 └── 06_pruefung.sql        -- prüft die Märchendaten; jede Zeile muss „ja“ zeigen
 ```
@@ -50,12 +52,18 @@ Datenbank/
 ## Einrichten
 
 In FREEPDB1 der Reihe nach ausführen: `00_zuruecksetzen.sql` und `01_benutzer.sql` als SYS, danach als DOAG_SPATIAL
-`pa_geo.pck`, `02_tabellen.sql`, `03_maerchendaten.sql` (einige Minuten), `05_ords.sql` und `06_pruefung.sql`.
+`pa_geo.pck`, `02_tabellen.sql`, `03_maerchendaten.sql` (höchstens einige Minuten), `04_laender.sql`, `05_ords.sql`
+und `06_pruefung.sql`.
+
+## Folien ohne Installation
+
+`Vortrag\Folien.pdf` enthält alle Folien mit den Ergebnissen eines Laufs auf der Demo-Datenbank. Es braucht weder
+Datenbank noch Webserver.
 
 ## Folien zeigen
 
 `Vortrag\start.cmd` starten. Es öffnet die Folien unter `http://localhost:8765/Folien.html`. Als Datei geöffnet
 (Doppelklick auf `Folien.html`) lehnt ORDS die Abrufe ab, weil der Browser dann keine Herkunft mitschickt.
 
-Tasten: Pfeiltasten oder Leertaste blättern, `F` Vollbild, `B` Bildschirm schwarz, `T` Soll- und Ist-Zeit einblenden,
+Tasten: Pfeiltasten oder Leertaste blättern, `F` Vollbild, `T` Soll- und Ist-Zeit einblenden,
 `R` Uhr zurücksetzen, `Z` Zaubersprüche hell oder dunkel (der Browser merkt sich die Wahl).

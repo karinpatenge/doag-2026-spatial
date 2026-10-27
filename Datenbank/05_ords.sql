@@ -359,7 +359,7 @@ select name,
           where o.name in ('Hexenhaus', 'Elternhaus'))
   order by ebene, reihenfolge]');
 
-  -- Kapitel 8: Eine Million Bäume (Spatial Index) ---------------------------------------------------------------------
+  -- Kapitel 8: 100 000 Bäume (Spatial Index) --------------------------------------------------------------------------
   endpunkt('baeume-funktion', 'Bäume im Umkreis von 50 m ums Hexenhaus, mit der Funktion (ohne Index)', q'[
 select count(*) as baeume
   from baum b

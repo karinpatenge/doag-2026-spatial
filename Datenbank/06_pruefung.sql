@@ -117,19 +117,19 @@ with g as (
     from g
   union all
   select 12,
-         'Rund eine Million Bäume, einige hundert im 50-m-Kreis ums Hexenhaus',
+         'Rund 100 000 Bäume, einige Dutzend im 50-m-Kreis ums Hexenhaus',
          (select count(*) from baum) || ' Bäume, '
            || (select count(*)
                  from baum b
                  cross join ort h
                  where h.name = 'Hexenhaus'
                    and sdo_within_distance(b.geo, h.geo, 'distance=50') = 'TRUE') || ' im 50-m-Kreis',
-         case when (select count(*) from baum) between 900000 and 1100000
+         case when (select count(*) from baum) between 90000 and 110000
                and (select count(*)
                       from baum b
                       cross join ort h
                       where h.name = 'Hexenhaus'
-                        and sdo_within_distance(b.geo, h.geo, 'distance=50') = 'TRUE') between 100 and 1000
+                        and sdo_within_distance(b.geo, h.geo, 'distance=50') = 'TRUE') between 10 and 100
               then 'ja' else 'nein' end
     from g)
 select nr,
